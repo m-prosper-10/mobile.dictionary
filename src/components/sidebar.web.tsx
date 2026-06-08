@@ -1,322 +1,137 @@
-import { MOCK_ITEMS } from "@/utils/mock-items";
-import * as ContextMenu from "@radix-ui/react-context-menu";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { Link, usePathname } from "expo-router";
-import {
-  Archive,
-  Edit3,
-  LogOut,
-  PanelLeft,
-  PanelLeftOpen,
-  Pin,
-  Settings,
-  Share,
-  SquarePen,
-  Trash2,
-  User,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { useDictionary } from "@/components/dictionary-provider";
+import { Icon } from "@/components/icon";
+import { BookOpenText, Menu, PanelLeft, PanelLeftOpen } from "lucide-react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-const MENU_CONTENT_CLASS =
-  "z-[100] min-w-[180px] rounded-xl bg-card p-1.5 shadow-float border border-border/40 animate-fade-up";
-
-const MENU_ITEM_CLASS =
-  "flex cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-foreground outline-none data-[highlighted]:bg-accent";
-
-const MENU_SEPARATOR_CLASS = "my-1 h-px bg-border/40";
-
-const MENU_DESTRUCTIVE_CLASS =
-  "flex cursor-default select-none items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-red-500 outline-none data-[highlighted]:bg-red-500/10";
-
-function SidebarTooltip({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          side="right"
-          sideOffset={8}
-          className="z-[100] rounded-lg bg-foreground px-3 py-1.5 text-[13px] text-background shadow-float animate-fade-up"
-        >
-          {label}
-          <Tooltip.Arrow className="fill-foreground" />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
-  );
-}
-
-const NAV_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/items", label: "Items" },
-  { href: "/settings", label: "Settings" },
-] as const;
-
-
-/**
- * Sidebar matching the native drawer content layout:
- * - Bold app title
- * - Nav items (Home, Items, Settings)
- * - Scrollable "Recents" section with mock items
- * - Footer with user avatar + new item button
- *
- * Collapses on desktop, slides on mobile.
- */
-export function Sidebar({
-  isOpen,
-  onToggle,
-  isCollapsed,
-  onCollapse,
-}: {
+export function Sidebar(_props: {
   isOpen: boolean;
   onToggle: () => void;
   isCollapsed: boolean;
   onCollapse: () => void;
 }) {
-  const pathname = usePathname();
+  const { history, searchWord } = useDictionary();
 
   return (
+    <View className="relative">
+      <SidebarShell history={history} searchWord={searchWord} {..._props} />
+    </View>
+  );
+}
+
+function SidebarShell({
+  isOpen,
+  onToggle,
+  isCollapsed,
+  onCollapse,
+  history,
+  searchWord,
+}: {
+  isOpen: boolean;
+  onToggle: () => void;
+  isCollapsed: boolean;
+  onCollapse: () => void;
+  history: string[];
+  searchWord: (word: string) => Promise<unknown>;
+}) {
+  return (
     <>
-      {/* Mobile overlay */}
       <Pressable
         onPress={onToggle}
         aria-hidden={!isOpen}
         className={`fixed inset-0 z-40 bg-black/30 md:hidden ${
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
-        // @ts-expect-error: Web-only CSS transition property
-        style={{ transition: "opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1)" }}
+        style={{
+          transition: "opacity 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+        }}
       />
 
-      {/* Sidebar */}
       <View
-        className={`
-          fixed left-0 top-0 z-50 flex h-dvh flex-col bg-sidebar
-          md:relative md:z-auto
-          ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-        `}
+        className={`fixed left-0 top-0 z-50 flex h-dvh flex-col border-r border-border/40 bg-sidebar md:relative md:z-auto ${
+          isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
         style={{
-          width: isCollapsed ? 48 : 280,
+          width: isCollapsed ? 56 : 280,
           overflow: "hidden",
-          // @ts-expect-error: Web-only CSS transition property
           transition:
-            "width 0.3s cubic-bezier(0.32, 0.72, 0, 1), translate 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+            "width 0.25s cubic-bezier(0.32, 0.72, 0, 1), transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        {/* Header */}
-        {!isCollapsed && (
-          <View className="flex flex-row items-center px-4 pt-5 pb-3">
-            <View className="flex flex-row items-center justify-between flex-1">
-              <Text className="text-[28px] font-bold text-foreground">
-                Acme
-              </Text>
-              <View className="flex flex-row items-center gap-1">
-                {/* Close button on mobile */}
-                <Pressable
-                  onPress={onToggle}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent md:hidden"
-                >
-                  <Text className="text-sm">✕</Text>
-                </Pressable>
-                {/* Collapse button on desktop */}
-                <Pressable
-                  onPress={onCollapse}
-                  className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <PanelLeft size={18} strokeWidth={1.5} />
-                </Pressable>
+        {!isCollapsed ? (
+          <>
+            <View className="flex-row items-center gap-3 px-4 pt-5 pb-3">
+              <View className="h-10 w-10 items-center justify-center rounded-xl border border-border bg-card">
+                <Icon icon={BookOpenText} className="w-5 h-5 text-foreground" />
               </View>
+              <View className="flex-1">
+                <Text className="text-[24px] font-bold text-foreground">
+                  Dictionary
+                </Text>
+                <Text className="text-[13px] text-muted-foreground">
+                  Search history
+                </Text>
+              </View>
+              <Pressable
+                onPress={onCollapse}
+                className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
+              >
+                <PanelLeft size={18} strokeWidth={1.5} />
+              </Pressable>
+              <Pressable
+                onPress={onToggle}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:hidden active:bg-muted"
+              >
+                <Text className="text-[14px] font-semibold text-foreground">✕</Text>
+              </Pressable>
             </View>
-          </View>
-        )}
 
-        {/* Nav + recent items */}
-        {!isCollapsed && (
-          <ScrollView
-            className="flex-1"
-            contentContainerStyle={{ paddingBottom: 8 }}
-          >
-            {/* Nav items */}
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.href} href={item.href as any} asChild>
+            <ScrollView className="flex-1" contentContainerClassName="gap-2 pb-4">
+              {history.length > 0 ? (
+                history.map((word) => (
                   <Pressable
-                    className={`px-4 py-3 mx-2 rounded-[10px] ${
-                      isActive
-                        ? "bg-accent"
-                        : "hover:bg-accent/50 active:bg-accent"
-                    }`}
+                    key={word}
+                    onPress={async () => {
+                      onToggle();
+                      await searchWord(word);
+                    }}
+                    className="mx-2 rounded-xl border border-border bg-card px-4 py-3 active:bg-muted"
                   >
-                    <Text
-                      className={`text-base ${
-                        isActive
-                          ? "text-foreground font-medium"
-                          : "text-foreground"
-                      }`}
-                    >
-                      {item.label}
+                    <Text numberOfLines={1} className="text-[15px] text-foreground">
+                      {word}
                     </Text>
                   </Pressable>
-                </Link>
-              );
-            })}
-
-            {/* Recents */}
-            <Text className="text-[13px] font-semibold text-muted-foreground/60 px-6 pt-5 pb-1.5 uppercase tracking-wider">
-              Recents
-            </Text>
-            {MOCK_ITEMS.map((item) => {
-              const isActive = pathname === `/item/${item.id}`;
-              return (
-                <ContextMenu.Root key={item.id}>
-                  <ContextMenu.Trigger asChild>
-                    <Link href={`/item/${item.id}`} asChild>
-                      <Pressable
-                        className={`px-4 py-2.5 mx-2 rounded-[10px] ${
-                          isActive
-                            ? "bg-accent"
-                            : "hover:bg-accent/50 active:bg-accent"
-                        }`}
-                      >
-                        <Text
-                          numberOfLines={1}
-                          className={`text-[15px] ${
-                            isActive
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {item.title}
-                        </Text>
-                      </Pressable>
-                    </Link>
-                  </ContextMenu.Trigger>
-                  <ContextMenu.Portal>
-                    <ContextMenu.Content className={MENU_CONTENT_CLASS}>
-                      <ContextMenu.Item className={MENU_ITEM_CLASS}>
-                        <Pin size={14} strokeWidth={1.5} />
-                        Pin
-                      </ContextMenu.Item>
-                      <ContextMenu.Item className={MENU_ITEM_CLASS}>
-                        <Edit3 size={14} strokeWidth={1.5} />
-                        Rename
-                      </ContextMenu.Item>
-                      <ContextMenu.Item className={MENU_ITEM_CLASS}>
-                        <Share size={14} strokeWidth={1.5} />
-                        Share
-                      </ContextMenu.Item>
-                      <ContextMenu.Item className={MENU_ITEM_CLASS}>
-                        <Archive size={14} strokeWidth={1.5} />
-                        Archive
-                      </ContextMenu.Item>
-                      <ContextMenu.Separator className={MENU_SEPARATOR_CLASS} />
-                      <ContextMenu.Item className={MENU_DESTRUCTIVE_CLASS}>
-                        <Trash2 size={14} strokeWidth={1.5} />
-                        Delete
-                      </ContextMenu.Item>
-                    </ContextMenu.Content>
-                  </ContextMenu.Portal>
-                </ContextMenu.Root>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {/* Collapsed icon rail */}
-        {isCollapsed && (
-          <Tooltip.Provider delayDuration={200}>
-            <View className="flex flex-col items-center gap-1 pt-3 px-1.5">
-              <SidebarTooltip label="Open sidebar">
-                <Pressable
-                  onPress={onCollapse}
-                  className="sidebar-toggle-btn flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <View className="sidebar-toggle-default">
-                    <PanelLeft size={18} strokeWidth={1.5} />
+                ))
+              ) : (
+                <View className="items-center gap-3 px-6 py-12">
+                  <View className="h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary">
+                    <Icon icon={BookOpenText} className="w-6 h-6 text-foreground" />
                   </View>
-                  <View className="sidebar-toggle-hover">
-                    <PanelLeftOpen size={18} strokeWidth={1.5} />
+                  <View className="items-center gap-1">
+                    <Text className="text-[15px] font-semibold text-foreground">
+                      No history yet
+                    </Text>
+                    <Text className="text-center text-[13px] leading-snug text-muted-foreground">
+                      Successful searches will appear here for quick access.
+                    </Text>
                   </View>
-                </Pressable>
-              </SidebarTooltip>
-              <SidebarTooltip label="New item">
-                <Link href="/items" asChild>
-                  <Pressable className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
-                    <SquarePen size={18} strokeWidth={1.5} />
-                  </Pressable>
-                </Link>
-              </SidebarTooltip>
-              <SidebarTooltip label="Delete">
-                <Pressable className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
-                  <Trash2 size={18} strokeWidth={1.5} />
-                </Pressable>
-              </SidebarTooltip>
-            </View>
-          </Tooltip.Provider>
-        )}
-
-        {/* Spacer when collapsed */}
-        {isCollapsed && <View className="flex-1" />}
-
-        {/* Footer */}
-        {!isCollapsed && (
-          <View className="border-t border-border/40 px-3 py-3">
-            <View className="flex flex-row items-center">
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <Pressable className="flex flex-row items-center gap-2.5 rounded-full hover:opacity-70 active:opacity-60">
-                    <View className="rounded-full bg-muted items-center justify-center shrink-0 w-8 h-8">
-                      <Text className="font-semibold text-foreground text-[13px]">
-                        JD
-                      </Text>
-                    </View>
-                    <Text className="text-sm text-foreground">Jane Doe</Text>
-                  </Pressable>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    side="top"
-                    sideOffset={8}
-                    align="start"
-                    className={MENU_CONTENT_CLASS}
-                  >
-                    <DropdownMenu.Item className={MENU_ITEM_CLASS}>
-                      <User size={14} strokeWidth={1.5} />
-                      Profile
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item className={MENU_ITEM_CLASS}>
-                      <Settings size={14} strokeWidth={1.5} />
-                      Settings
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Separator
-                      className={MENU_SEPARATOR_CLASS}
-                    />
-                    <DropdownMenu.Item className={MENU_DESTRUCTIVE_CLASS}>
-                      <LogOut size={14} strokeWidth={1.5} />
-                      Sign out
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-
-              <View className="flex-1" />
-              <Link href="/items" asChild>
-                <Pressable className="w-10 h-10 rounded-full bg-foreground hover:bg-foreground/90 active:bg-foreground/80 items-center justify-center flex">
-                  <View className="text-background">
-                    <SquarePen size={18} strokeWidth={1.5} />
-                  </View>
-                </Pressable>
-              </Link>
-            </View>
+                </View>
+              )}
+            </ScrollView>
+          </>
+        ) : (
+          <View className="flex-1 items-center gap-3 px-2 pt-3">
+            <Pressable
+              onPress={onCollapse}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card active:bg-muted"
+            >
+              <Icon icon={PanelLeftOpen} className="w-5 h-5 text-foreground" />
+            </Pressable>
+            <Pressable
+              onPress={onToggle}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card active:bg-muted md:hidden"
+            >
+              <Icon icon={Menu} className="w-5 h-5 text-foreground" />
+            </Pressable>
           </View>
         )}
       </View>
@@ -328,9 +143,9 @@ export function SidebarToggle({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+      className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card active:bg-muted"
     >
-      <PanelLeft size={18} strokeWidth={1.5} />
+      <Icon icon={Menu} className="w-5 h-5 text-foreground" />
     </Pressable>
   );
 }
