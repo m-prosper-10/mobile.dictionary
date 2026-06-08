@@ -22,10 +22,12 @@ export function SearchInput({
   onSelectSuggestion,
   loading = false,
 }: SearchInputProps) {
+  const hasSuggestions = suggestions.length > 0;
+
   return (
     <View className="gap-3">
-      <View className="gap-2 rounded-xl border border-border bg-card px-4 py-3">
-        <View className="flex-row items-center gap-3">
+      <View className="gap-3 rounded-2xl border border-border bg-card px-4 py-4 shadow-card">
+        <View className="flex-row items-center gap-3 rounded-xl border border-border bg-background px-3 py-3">
           <Icon icon={Search} className="w-5 h-5 text-muted-foreground" />
           <TextInput
             value={value}
@@ -33,11 +35,12 @@ export function SearchInput({
             onSubmitEditing={onSubmit}
             autoCapitalize="none"
             autoCorrect={false}
+            autoComplete="off"
             placeholder="Search a word"
             placeholderTextColorClassName="accent-muted-foreground"
             selectionColorClassName="accent-foreground"
             cursorColorClassName="accent-foreground"
-            className="flex-1 text-[17px] text-foreground"
+            className="flex-1 text-[16px] text-foreground"
             returnKeyType="search"
             autoFocus={false}
           />
@@ -53,53 +56,54 @@ export function SearchInput({
           ) : null}
         </View>
 
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center justify-between gap-3">
           <Text className="text-[12px] text-muted-foreground">
             Search as you type
           </Text>
-          <Text className="text-[12px] text-muted-foreground">
-            {loading ? "Searching..." : "Tap a suggestion to search"}
+          <Text className="text-right text-[12px] text-muted-foreground">
+            {loading ? "Searching..." : "Tap a suggestion or press Search"}
           </Text>
         </View>
       </View>
 
-      <View className="gap-2">
-        {suggestions.length > 0 ? (
-          <View className="gap-2 rounded-xl border border-border bg-card p-2">
-            <Text className="px-2 pt-1 text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Suggestions
+      {hasSuggestions ? (
+        <View className="gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {value.trim() ? "Matches" : "Recent searches"}
             </Text>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerClassName="gap-2 px-1 pb-1"
-            >
-              {suggestions.map((suggestion) => (
-                <Pressable
-                  key={suggestion}
-                  onPress={() => onSelectSuggestion(suggestion)}
-                  className="rounded-full border border-border bg-background px-3 py-2 active:bg-muted"
-                >
-                  <Text className="text-[14px] text-foreground">
-                    {suggestion}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            <Text className="text-[12px] text-muted-foreground">
+              {suggestions.length} option{suggestions.length === 1 ? "" : "s"}
+            </Text>
           </View>
-        ) : null}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-2 pb-1"
+          >
+            {suggestions.map((suggestion) => (
+              <Pressable
+                key={suggestion}
+                onPress={() => onSelectSuggestion(suggestion)}
+                className="rounded-full border border-border bg-background px-3 py-2 active:bg-muted"
+              >
+                <Text className="text-[14px] text-foreground">{suggestion}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
-        <Pressable
-          onPress={onSubmit}
-          disabled={loading}
-          className="h-12 items-center justify-center rounded-xl bg-foreground px-4 active:opacity-80 disabled:opacity-50"
-        >
-          <Text className="text-[15px] font-semibold text-background">
-            {loading ? "Searching" : "Search"}
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={onSubmit}
+        disabled={loading}
+        className="h-12 items-center justify-center rounded-2xl bg-foreground px-4 active:opacity-80 disabled:opacity-50"
+      >
+        <Text className="text-[15px] font-semibold text-background">
+          {loading ? "Searching" : "Search"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
