@@ -13,6 +13,7 @@ export function DictionaryScreen() {
   const {
     data,
     loading,
+    liveLoading,
     error,
     history,
     committedWord,
@@ -123,7 +124,7 @@ export function DictionaryScreen() {
             setQuery(value);
             void handleSearch(value);
           }}
-          loading={loading}
+          loading={loading || liveLoading}
         />
 
         {loading ? (

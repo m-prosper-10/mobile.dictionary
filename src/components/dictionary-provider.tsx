@@ -13,6 +13,7 @@ import React, {
 type DictionaryContextValue = {
   data: DictionaryEntry | null;
   loading: boolean;
+  liveLoading: boolean;
   error: string | null;
   history: string[];
   committedWord: string;
@@ -28,6 +29,7 @@ const DictionaryContext = createContext<DictionaryContextValue | null>(null);
 export function DictionaryProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DictionaryEntry | null>(null);
   const [loading, setLoading] = useState(false);
+  const [liveLoading, setLiveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [committedWord, setCommittedWord] = useState("");
@@ -54,7 +56,11 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
-    setLoading(true);
+    if (options?.silent) {
+      setLiveLoading(true);
+    } else {
+      setLoading(true);
+    }
     if (!options?.silent) {
       setError(null);
     }
@@ -104,7 +110,11 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       return null;
     } finally {
       if (requestId === requestIdRef.current) {
-        setLoading(false);
+        if (options?.silent) {
+          setLiveLoading(false);
+        } else {
+          setLoading(false);
+        }
       }
     }
   }, []);
@@ -113,13 +123,14 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
     () => ({
       data,
       loading,
+      liveLoading,
       error,
       history,
       committedWord,
       searchWord,
       clearError,
     }),
-    [clearError, committedWord, data, error, history, loading, searchWord],
+    [clearError, committedWord, data, error, history, liveLoading, loading, searchWord],
   );
 
   return (
