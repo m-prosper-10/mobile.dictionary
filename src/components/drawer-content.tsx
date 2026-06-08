@@ -1,7 +1,7 @@
 import { Icon } from "@/components/icon";
 import { useDictionary } from "@/components/dictionary-provider";
 import { SafeAreaView } from "@/components/tw";
-import { BookOpenText } from "lucide-react-native";
+import { BookOpenText, Trash2 } from "lucide-react-native";
 
 import React, { createContext, use, useCallback, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -73,18 +73,35 @@ function EmptyHistory() {
 }
 
 export function DrawerContent() {
-  const { history, searchWord } = useDictionary();
+  const { history, searchWord, clearHistory } = useDictionary();
   const { closeDrawer } = useDrawer();
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom", "left"]}>
       <View className="px-4 pt-4 pb-3">
-        <Text className="text-[28px] font-bold text-foreground">
-          Dictionary
-        </Text>
-        <Text className="text-[13px] text-muted-foreground">
-          Search history
-        </Text>
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <Text className="text-[28px] font-bold text-foreground">
+              Dictionary
+            </Text>
+            <Text className="text-[13px] text-muted-foreground">
+              Search history
+            </Text>
+          </View>
+          {history.length > 0 ? (
+            <Pressable
+              onPress={clearHistory}
+              accessibilityRole="button"
+              accessibilityLabel="Clear history"
+              className="flex-row items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 active:bg-muted"
+            >
+              <Icon icon={Trash2} className="w-4 h-4 text-foreground" />
+              <Text className="text-[13px] font-medium text-foreground">
+                Clear
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <ScrollView

@@ -19,6 +19,7 @@ type DictionaryContextValue = {
   history: string[];
   committedWord: string;
   searchWord: (word: string) => Promise<DictionaryEntry | null>;
+  clearHistory: () => void;
   clearError: () => void;
 };
 
@@ -55,6 +56,13 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    void AsyncStorage.removeItem(HISTORY_STORAGE_KEY).catch(() => {
+      // Clearing history should never block the UI.
+    });
   }, []);
 
   useEffect(() => {
@@ -172,9 +180,19 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       history,
       committedWord,
       searchWord,
+      clearHistory,
       clearError,
     }),
-    [clearError, committedWord, data, error, history, loading, searchWord],
+    [
+      clearError,
+      clearHistory,
+      committedWord,
+      data,
+      error,
+      history,
+      loading,
+      searchWord,
+    ],
   );
 
   return (

@@ -3,6 +3,7 @@ import { DictionaryProvider } from "@/components/dictionary-provider";
 import { useDictionary } from "@/components/dictionary-provider";
 import "@/global.css";
 import { Slot } from "expo-router";
+import { Trash2 } from "lucide-react-native";
 import { useState } from "react";
 import type { ReactNode, Dispatch, SetStateAction } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
@@ -60,7 +61,7 @@ function MobileLayout({
   setSidebarOpen: Dispatch<SetStateAction<boolean>>;
   children: ReactNode;
 }) {
-  const { history, searchWord } = useDictionary();
+  const { history, searchWord, clearHistory } = useDictionary();
 
   return (
     <View className="relative flex h-dvh w-full flex-col bg-background">
@@ -100,6 +101,16 @@ function MobileLayout({
               Search history
             </Text>
           </View>
+          {history.length > 0 ? (
+            <Pressable
+              onPress={clearHistory}
+              accessibilityRole="button"
+              accessibilityLabel="Clear history"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card active:bg-muted"
+            >
+              <Trash2 size={16} strokeWidth={1.8} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => setSidebarOpen(false)}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card active:bg-muted"

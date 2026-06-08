@@ -1,6 +1,12 @@
 import { useDictionary } from "@/components/dictionary-provider";
 import { Icon } from "@/components/icon";
-import { BookOpenText, Menu, PanelLeft, PanelLeftOpen } from "lucide-react";
+import {
+  BookOpenText,
+  Menu,
+  PanelLeft,
+  PanelLeftOpen,
+  Trash2,
+} from "lucide-react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 export function Sidebar(_props: {
@@ -9,11 +15,16 @@ export function Sidebar(_props: {
   isCollapsed: boolean;
   onCollapse: () => void;
 }) {
-  const { history, searchWord } = useDictionary();
+  const { history, searchWord, clearHistory } = useDictionary();
 
   return (
     <View className="relative">
-      <SidebarShell history={history} searchWord={searchWord} {..._props} />
+      <SidebarShell
+        history={history}
+        searchWord={searchWord}
+        clearHistory={clearHistory}
+        {..._props}
+      />
     </View>
   );
 }
@@ -25,6 +36,7 @@ function SidebarShell({
   onCollapse,
   history,
   searchWord,
+  clearHistory,
 }: {
   isOpen: boolean;
   onToggle: () => void;
@@ -32,6 +44,7 @@ function SidebarShell({
   onCollapse: () => void;
   history: string[];
   searchWord: (word: string) => Promise<unknown>;
+  clearHistory: () => void;
 }) {
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
@@ -75,14 +88,24 @@ function SidebarShell({
                   Search history
                 </Text>
               </View>
-            <Pressable
-              onPress={onCollapse}
-              className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
-            >
-              <PanelLeft size={18} strokeWidth={1.5} />
-            </Pressable>
-            <Pressable
-              onPress={onToggle}
+              {history.length > 0 ? (
+                <Pressable
+                  onPress={clearHistory}
+                  className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear history"
+                >
+                  <Icon icon={Trash2} className="w-4 h-4 text-foreground" />
+                </Pressable>
+              ) : null}
+              <Pressable
+                onPress={onCollapse}
+                className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
+              >
+                <PanelLeft size={18} strokeWidth={1.5} />
+              </Pressable>
+              <Pressable
+                onPress={onToggle}
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:hidden active:bg-muted"
               >
                 <Text className="text-[14px] font-semibold text-foreground">✕</Text>
