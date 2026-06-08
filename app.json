@@ -14,7 +14,8 @@
       "bundleIdentifier": "com.revokslab.expo-template"
     },
     "android": {
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.revokslab.expotemplate"
     },
     "web": {
       "output": "server"

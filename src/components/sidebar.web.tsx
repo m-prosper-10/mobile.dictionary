@@ -1,7 +1,7 @@
 import { useDictionary } from "@/components/dictionary-provider";
 import { Icon } from "@/components/icon";
 import { BookOpenText, Menu, PanelLeft, PanelLeftOpen } from "lucide-react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 export function Sidebar(_props: {
   isOpen: boolean;
@@ -33,6 +33,10 @@ function SidebarShell({
   history: string[];
   searchWord: (word: string) => Promise<unknown>;
 }) {
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const showCollapsedRail = isCollapsed && !isMobile;
+
   return (
     <>
       <Pressable
@@ -51,13 +55,13 @@ function SidebarShell({
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
         style={{
-          width: isCollapsed ? 56 : 280,
+          width: showCollapsedRail ? 56 : 280,
           overflow: "hidden",
           transition:
             "width 0.25s cubic-bezier(0.32, 0.72, 0, 1), transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
-        {!isCollapsed ? (
+        {!showCollapsedRail ? (
           <>
             <View className="flex-row items-center gap-3 px-4 pt-5 pb-3">
               <View className="h-10 w-10 items-center justify-center rounded-xl border border-border bg-card">
@@ -71,14 +75,14 @@ function SidebarShell({
                   Search history
                 </Text>
               </View>
-              <Pressable
-                onPress={onCollapse}
-                className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
-              >
-                <PanelLeft size={18} strokeWidth={1.5} />
-              </Pressable>
-              <Pressable
-                onPress={onToggle}
+            <Pressable
+              onPress={onCollapse}
+              className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:flex active:bg-muted"
+            >
+              <PanelLeft size={18} strokeWidth={1.5} />
+            </Pressable>
+            <Pressable
+              onPress={onToggle}
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card md:hidden active:bg-muted"
               >
                 <Text className="text-[14px] font-semibold text-foreground">✕</Text>
