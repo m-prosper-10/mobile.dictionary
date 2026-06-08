@@ -57,7 +57,7 @@ export function DictionaryScreen() {
         {loading ? (
           <LoadingState />
         ) : error ? (
-          <ErrorMessage message={error} />
+          <ErrorMessage message={error} onRetry={handleSearch} />
         ) : data ? (
           <View className="gap-4">
             <WordHeader wordData={data} />

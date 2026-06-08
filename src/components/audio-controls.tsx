@@ -1,6 +1,6 @@
 import { Audio } from "expo-av";
 import { Play, Pause, Square, Volume2 } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "@/components/icon";
@@ -30,20 +30,7 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
     }
   }, [audioUrls.length, selectedIndex]);
 
-  useEffect(() => {
-    void unloadAudio();
-    setAudioState("idle");
-    setError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAudioUrl]);
-
-  useEffect(() => {
-    return () => {
-      void unloadAudio();
-    };
-  }, []);
-
-  async function unloadAudio() {
+  const unloadAudio = useCallback(async () => {
     const sound = soundRef.current;
     soundRef.current = null;
 
@@ -56,7 +43,19 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
     } catch {
       // Ignore unload failures during cleanup.
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void unloadAudio();
+    setAudioState("idle");
+    setError(null);
+  }, [selectedAudioUrl, unloadAudio]);
+
+  useEffect(() => {
+    return () => {
+      void unloadAudio();
+    };
+  }, [unloadAudio]);
 
   async function loadAudio() {
     if (!selectedAudioUrl) {
