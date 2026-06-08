@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { ErrorMessage } from "@/components/error-message";
@@ -10,7 +10,8 @@ import { WordHeader } from "@/components/word-header";
 import { useDictionary } from "@/components/dictionary-provider";
 
 export function DictionaryScreen() {
-  const { data, loading, error, searchWord, clearError } = useDictionary();
+  const { data, loading, error, history, searchWord, clearError } =
+    useDictionary();
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -19,8 +20,33 @@ export function DictionaryScreen() {
     }
   }, [data?.word]);
 
-  async function handleSearch() {
-    const result = await searchWord(query);
+  useEffect(() => {
+    const cleanQuery = query.trim().toLowerCase();
+    if (cleanQuery.length < 4) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void searchWord(cleanQuery, { silent: true });
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [query, searchWord]);
+
+  const suggestions = useMemo(() => {
+    const cleanQuery = query.trim().toLowerCase();
+
+    if (!cleanQuery) {
+      return history.slice(0, 6);
+    }
+
+    return history
+      .filter((word) => word.startsWith(cleanQuery))
+      .slice(0, 6);
+  }, [history, query]);
+
+  async function handleSearch(value = query) {
+    const result = await searchWord(value);
     if (result?.word) {
       setQuery(result.word);
     }
@@ -50,7 +76,16 @@ export function DictionaryScreen() {
             setQuery(value);
             clearError();
           }}
-          onSubmit={handleSearch}
+          onSubmit={() => handleSearch()}
+          onClear={() => {
+            setQuery("");
+            clearError();
+          }}
+          suggestions={suggestions}
+          onSelectSuggestion={(value) => {
+            setQuery(value);
+            void handleSearch(value);
+          }}
           loading={loading}
         />
 

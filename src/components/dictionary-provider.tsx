@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -14,7 +15,10 @@ type DictionaryContextValue = {
   loading: boolean;
   error: string | null;
   history: string[];
-  searchWord: (word: string) => Promise<DictionaryEntry | null>;
+  searchWord: (
+    word: string,
+    options?: { silent?: boolean },
+  ) => Promise<DictionaryEntry | null>;
   clearError: () => void;
 };
 
@@ -25,26 +29,43 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const requestIdRef = useRef(0);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const searchWord = useCallback(async (word: string) => {
+  const searchWord = useCallback(async (
+    word: string,
+    options?: { silent?: boolean },
+  ) => {
     const cleanWord = word.trim().toLowerCase();
+    const requestId = ++requestIdRef.current;
 
     if (!cleanWord) {
-      setError("Please enter a word before searching.");
-      setData(null);
+      if (!options?.silent) {
+        setError("Please enter a word before searching.");
+      }
+      if (!options?.silent && requestId === requestIdRef.current) {
+        setData(null);
+      }
       return null;
     }
 
     setLoading(true);
-    setError(null);
-    setData(null);
+    if (!options?.silent) {
+      setError(null);
+    }
+    if (!options?.silent) {
+      setData(null);
+    }
 
     try {
       const result = await fetchWordDefinition(cleanWord);
+      if (requestId !== requestIdRef.current) {
+        return result;
+      }
+
       setData(result);
       setHistory((previous) => {
         if (!result.word) {
@@ -61,11 +82,23 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch word definition.";
-      setError(message);
-      setData(null);
+      if (requestId !== requestIdRef.current) {
+        return null;
+      }
+
+      if (!options?.silent) {
+        setError(message);
+      } else {
+        setError(null);
+      }
+      if (!options?.silent) {
+        setData(null);
+      }
       return null;
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 

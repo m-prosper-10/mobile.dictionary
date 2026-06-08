@@ -12,12 +12,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider as RNTheme,
-} from "expo-router/react-navigation";
-import { useColorScheme } from "react-native";
+import { DefaultTheme, ThemeProvider as RNTheme } from "expo-router/react-navigation";
 import { SafeAreaListener } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
 
@@ -25,9 +20,8 @@ const GLASS = isLiquidGlassAvailable();
 const IS_ANDROID = process.env.EXPO_OS === "android";
 
 function ThemeProvider(props: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
   return (
-    <RNTheme value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <RNTheme value={DefaultTheme}>
       <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
         {props.children}
       </SafeAreaListener>
