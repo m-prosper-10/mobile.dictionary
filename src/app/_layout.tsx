@@ -7,7 +7,6 @@ import { DictionaryProvider } from "@/components/dictionary-provider";
 import { DrawerLayout } from "@/components/drawer-layout";
 import "@/global.css";
 import { useSystemBackgroundColor } from "@/utils/use-system-background-color";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -15,9 +14,6 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { DefaultTheme, ThemeProvider as RNTheme } from "expo-router/react-navigation";
 import { SafeAreaListener } from "react-native-safe-area-context";
 import { Uniwind, useCSSVariable } from "uniwind";
-
-const GLASS = isLiquidGlassAvailable();
-const IS_ANDROID = process.env.EXPO_OS === "android";
 
 function ThemeProvider(props: { children: React.ReactNode }) {
   return (
@@ -42,7 +38,7 @@ export default function RootLayout() {
             <RootDrawer />
           </DrawerProvider>
         </DictionaryProvider>
-        {process.env.EXPO_OS !== "ios" && <StatusBar style="auto" />}
+        {process.env.EXPO_OS !== "ios" && <StatusBar style="dark" />}
       </KeyboardProvider>
     </ThemeProvider>
   );
@@ -72,15 +68,11 @@ function StackLayout() {
   return (
     <Stack
       screenOptions={{
-        headerTransparent: GLASS,
-        headerBackButtonDisplayMode: GLASS ? "minimal" : "default",
         headerTintColor: appForeground,
-        headerShadowVisible: IS_ANDROID ? false : undefined,
-        headerStyle: IS_ANDROID
-          ? {
-              backgroundColor: appBackground,
-            }
-          : undefined,
+        headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: appBackground,
+        },
       }}
     >
       <Stack.Screen

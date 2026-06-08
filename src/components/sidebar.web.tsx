@@ -38,7 +38,7 @@ function SidebarShell({
       <Pressable
         onPress={onToggle}
         aria-hidden={!isOpen}
-        className={`fixed inset-0 z-40 bg-black/30 md:hidden ${
+        className={`fixed inset-0 z-40 bg-foreground/12 md:hidden ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         style={{
