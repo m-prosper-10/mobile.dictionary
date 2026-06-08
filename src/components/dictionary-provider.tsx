@@ -18,7 +18,7 @@ type DictionaryContextValue = {
   error: string | null;
   history: string[];
   committedWord: string;
-  searchWord: (word: string) => Promise<DictionaryEntry | null>;
+  searchWord: (word: unknown) => Promise<DictionaryEntry | null>;
   clearHistory: () => void;
   clearError: () => void;
 };
@@ -43,6 +43,14 @@ function normalizeHistory(words: string[]) {
       return true;
     })
     .slice(0, MAX_HISTORY_ITEMS);
+}
+
+function normalizeSearchWord(word: unknown) {
+  if (typeof word !== "string") {
+    return "";
+  }
+
+  return word.trim().toLowerCase();
 }
 
 export function DictionaryProvider({ children }: { children: ReactNode }) {
@@ -114,8 +122,8 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
     });
   }, [history, historyReady]);
 
-  const searchWord = useCallback(async (word: string) => {
-    const cleanWord = word.trim().toLowerCase();
+  const searchWord = useCallback(async (word: unknown) => {
+    const cleanWord = normalizeSearchWord(word);
     const requestId = ++requestIdRef.current;
 
     if (!cleanWord) {

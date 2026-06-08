@@ -25,6 +25,7 @@ export function SearchInput({
   suggestionsLoading = false,
 }: SearchInputProps) {
   const hasSuggestions = suggestions.length > 0;
+  const canSubmit = Boolean(value.trim()) && !loading;
 
   return (
     <View className="gap-3">
@@ -34,7 +35,7 @@ export function SearchInput({
           <TextInput
             value={value}
             onChangeText={onChangeText}
-            onSubmitEditing={onSubmit}
+            onSubmitEditing={() => onSubmit()}
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="off"
@@ -98,8 +99,8 @@ export function SearchInput({
       ) : null}
 
       <Pressable
-        onPress={onSubmit}
-        disabled={loading}
+        onPress={() => onSubmit()}
+        disabled={!canSubmit}
         className="h-12 items-center justify-center rounded-2xl bg-foreground px-4 active:opacity-80 disabled:opacity-50"
       >
         <Text className="text-[15px] font-semibold text-background">

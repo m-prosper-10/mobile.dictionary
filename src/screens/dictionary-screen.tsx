@@ -68,7 +68,7 @@ export function DictionaryScreen() {
     data?.word && data.word.trim().toLowerCase() === cleanQuery,
   );
 
-  async function handleSearch(value = query) {
+  async function handleSearch(value: unknown = query) {
     const result = await searchWord(value);
     if (result?.word) {
       setQuery(result.word);
