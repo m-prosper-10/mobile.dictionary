@@ -52,11 +52,11 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
         }
 
         const normalized = result.word.trim().toLowerCase();
-        if (!normalized || previous.includes(normalized)) {
+        if (!normalized) {
           return previous;
         }
 
-        return [normalized, ...previous].slice(0, 20);
+        return [normalized, ...previous.filter((item) => item !== normalized)].slice(0, 20);
       });
       return result;
     } catch (err) {
