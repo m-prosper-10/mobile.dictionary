@@ -1,7 +1,6 @@
 import { Icon } from "@/components/icon";
 import { useDictionary } from "@/components/dictionary-provider";
 import { SafeAreaView } from "@/components/tw";
-import type { Href } from "expo-router";
 import { BookOpenText } from "lucide-react-native";
 
 import React, { createContext, use, useCallback, useState } from "react";

@@ -3,11 +3,12 @@ import {
   DrawerProvider,
   useDrawer,
 } from "@/components/drawer-content";
+import { DictionaryProvider } from "@/components/dictionary-provider";
 import { DrawerLayout } from "@/components/drawer-layout";
 import "@/global.css";
 import { useSystemBackgroundColor } from "@/utils/use-system-background-color";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -42,9 +43,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <KeyboardProvider>
-        <DrawerProvider>
-          <RootDrawer />
-        </DrawerProvider>
+        <DictionaryProvider>
+          <DrawerProvider>
+            <RootDrawer />
+          </DrawerProvider>
+        </DictionaryProvider>
         {process.env.EXPO_OS !== "ios" && <StatusBar style="auto" />}
       </KeyboardProvider>
     </ThemeProvider>
@@ -52,7 +55,6 @@ export default function RootLayout() {
 }
 
 function RootDrawer() {
-  const router = useRouter();
   const { isOpen, openDrawer, closeDrawer } = useDrawer();
 
   useSystemBackgroundColor();
@@ -62,17 +64,7 @@ function RootDrawer() {
       open={isOpen}
       onOpen={openDrawer}
       onClose={closeDrawer}
-      drawerContent={
-        <DrawerContent
-          onNavigate={(path) => {
-            closeDrawer();
-            router.replace(path, { withAnchor: true });
-          }}
-          onOpenModal={(path) => {
-            router.navigate(path);
-          }}
-        />
-      }
+      drawerContent={<DrawerContent />}
     >
       <StackLayout />
     </DrawerLayout>
@@ -101,7 +93,7 @@ function StackLayout() {
         name="index"
         dangerouslySingular
         options={{
-          title: "Acme",
+          title: "Dictionary",
           animation: "none",
           gestureEnabled: false,
         }}

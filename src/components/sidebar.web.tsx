@@ -91,7 +91,9 @@ function SidebarShell({
                   <Pressable
                     key={word}
                     onPress={async () => {
-                      onToggle();
+                      if (isOpen) {
+                        onToggle();
+                      }
                       await searchWord(word);
                     }}
                     className="mx-2 rounded-xl border border-border bg-card px-4 py-3 active:bg-muted"
