@@ -8,7 +8,11 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export --platform web",
-    "lint": "expo lint"
+    "build:web": "expo export --platform web",
+    "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
+    "quality": "npm run lint && npm run typecheck",
+    "security": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@expo/ui": "~56.0.12",
