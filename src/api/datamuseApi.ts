@@ -17,7 +17,7 @@ export async function fetchWordSuggestions(query: string): Promise<string[]> {
     const response = await axios.get<DatamuseSuggestion[]>(DATAMUSE_BASE_URL, {
       params: {
         s: cleanQuery,
-        max: 8,
+        max: 4,
       },
     });
 
@@ -35,7 +35,7 @@ export async function fetchWordSuggestions(query: string): Promise<string[]> {
         return typeof word === "string" ? word.trim() : "";
       })
       .filter(Boolean)
-      .slice(0, 8);
+      .slice(0, 4);
   } catch {
     return [];
   }

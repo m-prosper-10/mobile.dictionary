@@ -1,298 +1,287 @@
-# Dictionary Mobile App — Mermaid Diagrams
+# Dictionary Mobile App - Documentation
 
-This file contains all Mermaid diagrams for the Dictionary Mobile App documentation.
+This document reflects the current structure of the app in this repo:
+
+- Expo Router routes under `src/app/`
+- Android shell with drawer navigation
+- Web shell with a responsive sidebar
+- Free Dictionary API for definitions
+- Datamuse API for autocomplete suggestions
+- AsyncStorage-backed search history
+- Expo AV pronunciation playback
 
 ---
 
-## 1. Application Architecture
+## 1. App Structure
 
 ```mermaid
 flowchart TD
-    User[User] --> MobileApp[React Native Expo App]
+    User[User] --> Shell[Expo Router Shell]
 
-    MobileApp --> Navigation[React Navigation Drawer]
-    MobileApp --> UIScreens[UI Screens]
-    MobileApp --> State[Local App State]
+    Shell --> AndroidShell[Android Layout]
+    Shell --> WebShell[Web Layout]
 
-    UIScreens --> SearchScreen[Dictionary Search Screen]
-    UIScreens --> DrawerHistory[Drawer Search History]
+    AndroidShell --> DrawerLayout[Drawer Layout]
+    WebShell --> SidebarLayout[Responsive Sidebar Layout]
 
-    SearchScreen --> Validation[Input Validation]
-    Validation -->|Valid Word| APIService[Dictionary API Service]
-    Validation -->|Invalid Input| ValidationError[Show Validation Error]
+    DrawerLayout --> DictionaryScreen[Dictionary Screen]
+    SidebarLayout --> DictionaryScreen
 
-    APIService --> Axios[Axios HTTP Client]
-    Axios --> ExternalAPI[Free Dictionary API]
+    DictionaryScreen --> SearchInput[Search Input]
+    DictionaryScreen --> Results[Word Results]
+    DictionaryScreen --> Suggestions[Datamuse Suggestions]
 
-    ExternalAPI --> Axios
-    Axios --> APIService
+    Results --> WordHeader[Word Header]
+    WordHeader --> AudioControls[Audio Controls]
+    Results --> MeaningCards[Meaning Cards]
 
-    APIService --> Parser[Response Parser]
-    Parser --> WordData[Parsed Word Data]
-    Parser --> AudioData[Parsed Audio URLs]
+    AndroidShell --> DrawerHistory[Drawer Search History]
+    WebShell --> SidebarHistory[Sidebar Search History]
 
-    WordData --> WordDetails[Word Details UI]
-    AudioData --> AudioControls[Audio Controls]
-
-    AudioControls --> ExpoAV[Expo AV Audio Player]
-
-    WordDetails --> HistoryState[Search History State]
-    HistoryState --> DrawerHistory
-    DrawerHistory -->|Select Previous Word| APIService
+    DrawerHistory --> PersistedHistory[(AsyncStorage)]
+    SidebarHistory --> PersistedHistory
 ```
 
 ---
 
-## 2. Data Flow Diagram
+## 2. Route Structure
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> EnterWord[User Enters Word]
-    EnterWord --> SubmitSearch[User Submits Search]
+    Root[src/app/_layout.tsx] --> Index[src/app/index.tsx]
+    RootWeb[src/app/_layout.web.tsx] --> Index
 
-    SubmitSearch --> ValidateInput{Is Input Empty?}
+    Index --> DictionaryScreen[src/screens/dictionary-screen.tsx]
+    Root --> DrawerContent[src/components/drawer-content.tsx]
+    RootWeb --> SidebarWeb[src/components/sidebar.web.tsx]
+```
 
-    ValidateInput -->|Yes| ShowValidationError[Show: Please Enter a Word]
-    ShowValidationError --> EnterWord
+### Current routes
 
-    ValidateInput -->|No| BuildURL[Build API URL Dynamically]
-    BuildURL --> ShowLoading[Show Loading Indicator]
+- `src/app/index.tsx` - main dictionary screen
+- `src/app/_layout.tsx` - Android/native shell
+- `src/app/_layout.web.tsx` - web shell
 
-    ShowLoading --> SendRequest[Send GET Request Using Axios]
-    SendRequest --> API[Free Dictionary API]
+The app is no longer using the older template routes as part of the main flow.
 
-    API --> ResponseCheck{API Response}
+---
 
-    ResponseCheck -->|200 OK| ParseJSON[Parse JSON Response]
-    ResponseCheck -->|404 Not Found| WordNotFound[Show Word Not Found Message]
-    ResponseCheck -->|Network Error| NetworkError[Show Network Error Message]
-    ResponseCheck -->|Malformed Data| MalformedError[Show Safe Error Message]
+## 3. Data Flow
 
-    ParseJSON --> ExtractData[Extract Word, Phonetics, Meanings, Definitions]
-    ExtractData --> ExtractAudio[Extract Audio URLs]
+```mermaid
+flowchart TD
+    User[User] --> Input[Type or submit word]
+    Input --> SuggestionCheck{At least 2 chars?}
 
-    ExtractAudio --> HasAudio{Audio URL Exists?}
+    SuggestionCheck -->|Yes| Datamuse[Datamuse API]
+    SuggestionCheck -->|No| HideSuggestions[Hide suggestions]
 
-    HasAudio -->|Yes| NormalizeAudio[Normalize Audio URL]
-    HasAudio -->|No| HideAudio[Hide Audio Controls]
+    Datamuse --> SuggestionParse[Parse suggestions]
+    SuggestionParse --> SuggestionList[Render suggestion chips]
 
-    NormalizeAudio --> DisplayAudio[Display Speaker / Audio Controls]
-    HideAudio --> DisplayDetails[Display Word Details]
+    User --> SearchSubmit[Press Search or select suggestion]
+    SearchSubmit --> Validate{Input empty?}
 
-    DisplayAudio --> DisplayDetails
-    DisplayDetails --> SaveHistory[Save Word to Search History]
-    SaveHistory --> End([End])
+    Validate -->|Yes| ValidationError[Show validation message]
+    Validate -->|No| DictionaryAPI[Free Dictionary API]
 
-    WordNotFound --> HideLoading[Hide Loading Indicator]
-    NetworkError --> HideLoading
-    MalformedError --> HideLoading
-    HideLoading --> Retry[Allow Retry]
+    DictionaryAPI --> ParseResponse[Parse dictionary response]
+    ParseResponse --> WordData[Word, phonetic, meanings, audio URLs]
+    WordData --> RenderUI[Render results]
+
+    ParseResponse --> HistoryUpdate[Save successful search]
+    HistoryUpdate --> AsyncStorage[(AsyncStorage)]
 ```
 
 ---
 
-## 3. Search Flow
+## 4. Dictionary API Flow
 
-```mermaid
-flowchart TD
-    A[User Types Word] --> B[Press Search Button or Submit Keyboard]
-    B --> C{Input Valid?}
+The app uses the Free Dictionary API:
 
-    C -->|No| D[Display Validation Error]
-    D --> A
-
-    C -->|Yes| E[Clear Previous Error]
-    E --> F[Set Loading True]
-    F --> G[Call fetchWordDefinition word]
-
-    G --> H{Request Successful?}
-
-    H -->|Yes| I[Parse Dictionary Response]
-    I --> J[Set Word Data]
-    J --> K[Add Word to History]
-    K --> L[Render Word Details]
-
-    H -->|No| M{Error Type}
-    M -->|404| N[Show Word Not Found]
-    M -->|Network| O[Show Network Error]
-    M -->|Other| P[Show General Error]
-
-    N --> Q[Set Loading False]
-    O --> Q
-    P --> Q
-    L --> Q
+```txt
+https://api.dictionaryapi.dev/api/v2/entries/en/{word}
 ```
-
----
-
-## 4. API Integration Flow
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant App as React Native App
-    participant Service as Dictionary API Service
-    participant Axios as Axios Client
+    participant Screen as Dictionary Screen
+    participant Service as dictionaryApi.ts
+    participant Axios as Axios
     participant API as Free Dictionary API
+    participant Parser as parseDictionaryResponse.ts
 
-    User->>App: Enter word and search
-    App->>App: Validate input
+    User->>Screen: Search a word
+    Screen->>Service: fetchWordDefinition(word)
+    Service->>Axios: GET /entries/en/{word}
+    Axios->>API: HTTP request
 
-    alt Input is empty
-        App-->>User: Show validation error
-    else Input is valid
-        App->>Service: fetchWordDefinition(word)
-        Service->>Axios: GET /entries/en/{word}
-        Axios->>API: HTTP GET request
-
-        alt Word found
-            API-->>Axios: 200 OK with JSON array
-            Axios-->>Service: Response data
-            Service->>Service: Parse response safely
-            Service-->>App: Parsed word data
-            App-->>User: Display word details
-        else Word not found
-            API-->>Axios: 404 response
-            Axios-->>Service: Error response
-            Service-->>App: Word not found error
-            App-->>User: Show word not found message
-        else Network failure
-            Axios-->>Service: Network error
-            Service-->>App: Network error message
-            App-->>User: Show network error
-        end
+    alt Success
+        API-->>Axios: 200 JSON response
+        Axios-->>Service: Raw data
+        Service->>Parser: parseDictionaryResponse(data)
+        Parser-->>Service: Parsed dictionary entry
+        Service-->>Screen: Word details
+        Screen-->>User: Render result
+    else Word not found
+        API-->>Axios: 404
+        Axios-->>Service: Error response
+        Service-->>Screen: "Word not found"
+        Screen-->>User: Show error
+    else Network failure
+        Axios-->>Service: Request error
+        Service-->>Screen: Network error
+        Screen-->>User: Show error
     end
 ```
 
+### Parsed output
+
+`parseDictionaryResponse.ts` normalizes the API response into a clean shape:
+
+- `word`
+- `phonetic`
+- `phonetics`
+- `audioUrls`
+- `meanings`
+- `origin`
+
+Audio URLs are normalized and deduplicated before rendering.
+
 ---
 
-## 5. Audio Pronunciation Flow
+## 5. Suggestions Flow
+
+Autocomplete comes from Datamuse, not the dictionary API.
+
+Endpoint:
+
+```txt
+GET https://api.datamuse.com/sug?s={query}&max=4
+```
 
 ```mermaid
 flowchart TD
-    A[Parsed Dictionary Response] --> B[Read phonetics array]
-    B --> C[Extract audio fields]
-    C --> D[Remove empty audio URLs]
-    D --> E[Normalize URLs]
-
-    E --> F{Any valid audio URL?}
-
-    F -->|No| G[Hide Audio Controls]
-    F -->|Yes| H[Show Speaker Icon and Controls]
-
-    H --> I{Multiple Audio URLs?}
-
-    I -->|Yes| J[Show Pronunciation Selector]
-    I -->|No| K[Use Single Audio URL]
-
-    J --> L[User Selects Audio Variant]
-    K --> M[User Taps Play]
-    L --> M
-
-    M --> N[Load Audio with expo-av]
-    N --> O{Loaded Successfully?}
-
-    O -->|No| P[Show Audio Error]
-    O -->|Yes| Q[Play Audio]
-
-    Q --> R{User Action}
-    R -->|Pause| S[Pause Audio]
-    R -->|Stop| T[Stop Audio and Reset Position]
-    R -->|Select New Audio| U[Unload Current Audio]
-
-    U --> L
+    Type[User types text] --> LengthCheck{Length >= 2?}
+    LengthCheck -->|No| Hide[Hide suggestions]
+    LengthCheck -->|Yes| Debounce[Debounce input]
+    Debounce --> Datamuse[Datamuse suggestions API]
+    Datamuse --> Parse[Extract suggestion words]
+    Parse --> Render[Display suggestion chips]
+    Render --> Tap[User taps suggestion]
+    Tap --> Search[Normal dictionary search flow]
 ```
+
+### Suggestion behavior
+
+- Suggestions appear only when the query has at least 2 characters.
+- Suggestion requests are debounced.
+- Failed suggestion requests are ignored silently.
+- Selecting a suggestion hides the list and runs the normal dictionary search.
 
 ---
 
-## 6. Audio State Machine
-
-```mermaid
-stateDiagram-v2
-    [*] --> idle
-
-    idle --> loading: User taps play
-    loading --> playing: Audio loaded successfully
-    loading --> error: Audio loading fails
-
-    playing --> paused: User taps pause
-    paused --> playing: User taps play again
-
-    playing --> stopped: User taps stop
-    paused --> stopped: User taps stop
-
-    stopped --> playing: User taps play
-    error --> loading: User retries play
-
-    playing --> idle: Audio variant changes
-    paused --> idle: Audio variant changes
-    stopped --> idle: Audio variant changes
-
-    idle --> [*]: Component unmounts
-```
-
----
-
-## 7. Drawer Navigation and Search History
+## 6. Audio Playback Flow
 
 ```mermaid
 flowchart TD
-    A[Successful Word Search] --> B[Normalize Word to Lowercase]
-    B --> C{Already Exists in History?}
+    ParsedData[Parsed dictionary entry] --> Phonetics[Phonetics array]
+    Phonetics --> Extract[Extract audio URLs]
+    Extract --> Normalize[Normalize protocol-relative URLs]
+    Normalize --> Deduplicate[Deduplicate URLs]
 
-    C -->|Yes| D[Do Not Add Duplicate]
-    C -->|No| E[Add Word to Top of History]
+    Deduplicate --> HasAudio{Any audio URLs?}
+    HasAudio -->|No| HideControls[Hide audio controls]
+    HasAudio -->|Yes| ShowControls[Show controls]
 
-    E --> F[Display Word in Drawer]
-    D --> F
+    ShowControls --> SelectVariant{Multiple URLs?}
+    SelectVariant -->|Yes| VariantPicker[Show pronunciation selector]
+    SelectVariant -->|No| SingleAudio[Use single URL]
 
-    F --> G[User Opens Drawer]
-    G --> H[User Taps History Word]
+    VariantPicker --> Play[Play]
+    SingleAudio --> Play
+    Play --> ExpoAV[expo-av Sound]
+    ExpoAV --> PlaybackStatus[Playback status updates]
 
-    H --> I[Close Drawer]
-    I --> J[Trigger New API Request]
-    J --> K[Refresh Word Detail Screen]
+    PlaybackStatus --> Playing[playing]
+    PlaybackStatus --> Paused[paused]
+    PlaybackStatus --> Stopped[stopped]
+    PlaybackStatus --> Error[error]
 ```
+
+### Audio state model
+
+```txt
+idle
+loading
+playing
+paused
+stopped
+error
+```
+
+### Important rules
+
+- Audio is only loaded when the user plays it.
+- The currently selected pronunciation can change without breaking playback.
+- Stale audio loads are ignored if the user switches variants.
+- Audio errors do not crash the screen.
 
 ---
 
-## 8. Screen Navigation Structure
+## 7. Search History Flow
+
+Search history is stored in AsyncStorage and exposed through `DictionaryProvider`.
 
 ```mermaid
 flowchart TD
-    App[App.js] --> NavigationContainer[NavigationContainer]
-    NavigationContainer --> DrawerNavigator[Drawer Navigator]
+    Search[Successful search] --> Normalize[Normalize to lowercase]
+    Normalize --> Unique{Already in history?}
+    Unique -->|Yes| MoveTop[Move item to top]
+    Unique -->|No| AddTop[Add item to top]
+    MoveTop --> Persist[Persist to AsyncStorage]
+    AddTop --> Persist
+    Persist --> Drawer[Drawer / sidebar history]
 
-    DrawerNavigator --> MainScreen[Dictionary Screen]
-    DrawerNavigator --> CustomDrawer[Custom Drawer Content]
-
-    CustomDrawer --> HistoryList[Search History List]
-    HistoryList --> SelectedWord[Selected History Word]
-
-    SelectedWord --> MainScreen
-
-    MainScreen --> SearchSection[Search Section]
-    MainScreen --> ResultSection[Result Section]
-    MainScreen --> ErrorSection[Error Section]
-    MainScreen --> LoadingSection[Loading Section]
-
-    ResultSection --> WordHeader[Word Header]
-    ResultSection --> AudioControls[Audio Controls]
-    ResultSection --> MeaningCards[Meaning Cards]
+    Drawer --> Tap[Tap history item]
+    Tap --> SearchAgain[Search again]
 ```
+
+### History behavior
+
+- Only successful searches are stored.
+- History is unique and latest-first.
+- History survives app restarts.
+- Tapping a history item triggers a fresh dictionary lookup.
 
 ---
 
-## 9. Component Structure
+## 8. Shared State
+
+`DictionaryProvider` stores:
+
+- `data`
+- `loading`
+- `error`
+- `history`
+- `committedWord`
+
+It also:
+
+- fetches dictionary results
+- updates search history
+- hydrates persisted history from AsyncStorage
+
+---
+
+## 9. Screen Composition
 
 ```mermaid
 flowchart TD
-    App[App.js] --> AppNavigator[AppNavigator]
-
-    AppNavigator --> DictionaryScreen[DictionaryScreen]
-    AppNavigator --> CustomDrawerContent[CustomDrawerContent]
-
+    DictionaryScreen --> Header[Title + subtitle]
     DictionaryScreen --> SearchInput[SearchInput]
+    DictionaryScreen --> SuggestionChips[Datamuse suggestions]
     DictionaryScreen --> LoadingState[LoadingState]
     DictionaryScreen --> ErrorMessage[ErrorMessage]
     DictionaryScreen --> EmptyState[EmptyState]
@@ -300,170 +289,141 @@ flowchart TD
     DictionaryScreen --> MeaningCard[MeaningCard]
 
     WordHeader --> AudioControls[AudioControls]
-
-    AudioControls --> ExpoAV[expo-av]
-
-    DictionaryScreen --> DictionaryAPI[dictionaryApi.js]
-    DictionaryAPI --> Parser[parseDictionaryResponse.js]
-    Parser --> Normalizer[normalizeAudioUrl.js]
 ```
+
+### Main UI parts
+
+- `SearchInput`
+- `WordHeader`
+- `AudioControls`
+- `MeaningCard`
+- `ErrorMessage`
+- `EmptyState`
+- `LoadingState`
 
 ---
 
-## 10. Error Handling Flow
+## 10. Android and Web Shells
+
+### Android
+
+- Uses `src/app/_layout.tsx`
+- Uses the custom drawer shell
+- Best tested with Expo Go or a dev build
+
+### Web
+
+- Uses `src/app/_layout.web.tsx`
+- Uses a responsive sidebar
+- Small screens open an overlay drawer
+- Desktop keeps the collapsible sidebar behavior
 
 ```mermaid
 flowchart TD
-    A[Search Request Starts] --> B[Validate Input]
-
-    B --> C{Input Empty?}
-    C -->|Yes| D[Show Input Validation Error]
-    C -->|No| E[Send API Request]
-
-    E --> F{Request Result}
-
-    F -->|200 OK| G[Parse Response]
-    F -->|404| H[Show Word Not Found]
-    F -->|Network Error| I[Show Connectivity Error]
-    F -->|Timeout or Unknown| J[Show General Failure Message]
-
-    G --> K{Response Valid?}
-    K -->|Yes| L[Render Word Details]
-    K -->|No| M[Show Malformed Response Error]
-
-    H --> N[Hide Loading]
-    I --> N
-    J --> N
-    M --> N
-    L --> N
-
-    N --> O[Allow User to Retry]
+    WebLayout[src/app/_layout.web.tsx] --> Desktop[Desktop sidebar]
+    WebLayout --> Mobile[Mobile overlay drawer]
+    Mobile --> History[Search history]
+    Desktop --> History
 ```
 
 ---
 
-## 11. Complete System Activity Diagram
+## 11. Error Handling
 
 ```mermaid
 flowchart TD
-    Start([Start App]) --> EmptyState[Show Empty State]
+    Start[Search request] --> Validate[Validate input]
+    Validate -->|Empty| InputError[Show input error]
+    Validate -->|Valid| Request[Fetch dictionary data]
+    Request --> Response{Response}
 
-    EmptyState --> UserInput[User Enters Word]
-    UserInput --> SearchAction[User Presses Search]
+    Response -->|200| Render[Render results]
+    Response -->|404| NotFound[Show word not found]
+    Response -->|Network| NetworkError[Show network error]
+    Response -->|Unexpected| GeneralError[Show general error]
 
-    SearchAction --> Validate{Valid Input?}
+    Render --> Done[Finish]
+    NotFound --> Done
+    NetworkError --> Done
+    GeneralError --> Done
+```
 
-    Validate -->|No| ValidationMsg[Show Validation Message]
-    ValidationMsg --> UserInput
+### Error handling rules
 
-    Validate -->|Yes| Loading[Show Loading Indicator]
-    Loading --> Fetch[Fetch Word from API]
+- Empty input is rejected.
+- Dictionary 404s are shown as a friendly error.
+- Network failures are shown as a friendly error.
+- Datamuse failures are silent and never block dictionary search.
+- Audio failures are shown in the audio component only.
 
-    Fetch --> FetchResult{Fetch Result}
+---
 
-    FetchResult -->|Success| Parse[Parse Dictionary Data]
-    FetchResult -->|404| NotFound[Show Word Not Found]
-    FetchResult -->|Network Error| NetworkMsg[Show Network Message]
-    FetchResult -->|Unexpected Error| GeneralError[Show General Error]
+## 12. Current File Map
 
-    Parse --> RenderWord[Render Word and Phonetic]
-    RenderWord --> RenderMeanings[Render Meanings and Definitions]
-    RenderMeanings --> RenderExamples[Render Examples Where Available]
-
-    Parse --> AudioCheck{Audio Available?}
-    AudioCheck -->|Yes| ShowAudio[Show Audio Controls]
-    AudioCheck -->|No| HideAudio[Hide Audio Feature]
-
-    ShowAudio --> AudioAction{User Audio Action}
-    AudioAction -->|Play| PlayAudio[Play Pronunciation]
-    AudioAction -->|Pause| PauseAudio[Pause Audio]
-    AudioAction -->|Stop| StopAudio[Stop Audio]
-
-    RenderExamples --> SaveHistory[Save Successful Search to History]
-    SaveHistory --> Drawer[Update Drawer History]
-
-    Drawer --> HistoryTap{User Taps History Item?}
-    HistoryTap -->|Yes| Fetch
-    HistoryTap -->|No| End([Continue Using App])
-
-    NotFound --> Retry[Allow Retry]
-    NetworkMsg --> Retry
-    GeneralError --> Retry
-    Retry --> UserInput
+```txt
+src/
+├── api/
+│   ├── datamuseApi.ts
+│   └── dictionaryApi.ts
+├── app/
+│   ├── _layout.tsx
+│   ├── _layout.web.tsx
+│   └── index.tsx
+├── components/
+│   ├── audio-controls.tsx
+│   ├── dictionary-provider.tsx
+│   ├── drawer-content.tsx
+│   ├── drawer-layout.tsx
+│   ├── empty-state.tsx
+│   ├── error-message.tsx
+│   ├── loading-state.tsx
+│   ├── meaning-card.tsx
+│   ├── search-input.tsx
+│   ├── sidebar.web.tsx
+│   └── word-header.tsx
+├── screens/
+│   └── dictionary-screen.tsx
+└── utils/
+    ├── normalizeAudioUrl.ts
+    ├── parseDictionaryResponse.ts
+    └── use-system-background-color.ts
 ```
 
 ---
 
-## 12. Deployment / Testing Flow With Expo
+## 13. Testing and Run Targets
+
+Current project scripts:
+
+```txt
+npm start
+npm run android
+npm run web
+npm run build
+```
+
+Recommended flow:
 
 ```mermaid
 flowchart TD
-    A[Create Expo Project] --> B[Install Dependencies]
-    B --> C[Implement Screens]
-    C --> D[Implement API Service]
-    D --> E[Implement Audio Feature]
-    E --> F[Implement Drawer History]
-
-    F --> G[Run Expo CLI]
-    G --> H[Test on Android]
-    G --> I[Test on iOS]
-    G --> J[Test on Expo Go]
-
-    H --> K{Issues Found?}
-    I --> K
-    J --> K
-
-    K -->|Yes| L[Fix Bugs]
-    L --> G
-
-    K -->|No| M[Final Submission]
+    Install[npm install] --> Start[npm start]
+    Start --> Android[Android Expo Go / dev build]
+    Start --> Web[npm run web]
+    Web --> Check[Responsive sidebar + suggestions]
+    Android --> Check
 ```
 
 ---
 
-## 13. Documentation Index Mind Map
+## 14. Summary
 
-```mermaid
-mindmap
-  root((Dictionary Mobile App))
-    Search
-      Input field
-      Search button
-      Validation
-      Dynamic API URL
-    API Integration
-      Axios
-      Free Dictionary API
-      JSON parsing
-      Loading state
-    Word Details
-      Word
-      Phonetic
-      Parts of speech
-      Definitions
-      Examples
-      Multiple meanings
-    Audio Pronunciation
-      Audio URL extraction
-      Multiple pronunciations
-      Play
-      Pause
-      Stop
-      Error handling
-    Drawer Navigation
-      Search history
-      No duplicates
-      Tap to search again
-    Error Handling
-      Empty input
-      Word not found
-      Network failure
-      Malformed response
-      Retry option
-    UI UX
-      Minimal design
-      White background
-      Flat buttons
-      No gradients
-      No heavy decoration
-```
+The app is now a dictionary experience centered around:
+
+- dictionary lookup
+- suggestion autocomplete
+- audio pronunciation playback
+- persisted history
+- Android drawer navigation
+- responsive web sidebar navigation
+
+This document should be updated whenever the route structure, state model, or external APIs change.
