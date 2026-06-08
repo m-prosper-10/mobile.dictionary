@@ -11,6 +11,7 @@ type SearchInputProps = {
   suggestions: string[];
   onSelectSuggestion: (value: string) => void;
   loading?: boolean;
+  suggestionsLoading?: boolean;
 };
 
 export function SearchInput({
@@ -21,6 +22,7 @@ export function SearchInput({
   suggestions,
   onSelectSuggestion,
   loading = false,
+  suggestionsLoading = false,
 }: SearchInputProps) {
   const hasSuggestions = suggestions.length > 0;
 
@@ -56,11 +58,12 @@ export function SearchInput({
         </View>
 
         <View className="flex-row items-center justify-between gap-3">
-          <Text className="text-[12px] text-muted-foreground">
-            Search as you type
-          </Text>
           <Text className="text-right text-[12px] text-muted-foreground">
-            {loading ? "Searching..." : "Tap a suggestion or press Search"}
+            {loading
+              ? "Searching..."
+              : suggestionsLoading
+                ? "Finding suggestions..."
+                : "Press Search to look up the word"}
           </Text>
         </View>
       </View>
@@ -69,7 +72,7 @@ export function SearchInput({
         <View className="gap-2 rounded-2xl border border-border bg-card p-3 shadow-card">
           <View className="flex-row items-center justify-between">
             <Text className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {value.trim() ? "Matches" : "Recent searches"}
+              Suggestions
             </Text>
             <Text className="text-[12px] text-muted-foreground">
               {suggestions.length} option{suggestions.length === 1 ? "" : "s"}
