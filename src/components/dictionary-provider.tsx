@@ -15,6 +15,7 @@ type DictionaryContextValue = {
   loading: boolean;
   error: string | null;
   history: string[];
+  committedWord: string;
   searchWord: (
     word: string,
     options?: { silent?: boolean },
@@ -29,6 +30,7 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [committedWord, setCommittedWord] = useState("");
   const requestIdRef = useRef(0);
 
   const clearError = useCallback(() => {
@@ -67,18 +69,23 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       }
 
       setData(result);
-      setHistory((previous) => {
-        if (!result.word) {
-          return previous;
-        }
+      if (!options?.silent && result.word) {
+        setCommittedWord(result.word.trim().toLowerCase());
+      }
+      if (!options?.silent) {
+        setHistory((previous) => {
+          if (!result.word) {
+            return previous;
+          }
 
-        const normalized = result.word.trim().toLowerCase();
-        if (!normalized) {
-          return previous;
-        }
+          const normalized = result.word.trim().toLowerCase();
+          if (!normalized) {
+            return previous;
+          }
 
-        return [normalized, ...previous.filter((item) => item !== normalized)].slice(0, 20);
-      });
+          return [normalized, ...previous.filter((item) => item !== normalized)].slice(0, 20);
+        });
+      }
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch word definition.";
@@ -108,10 +115,11 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       history,
+      committedWord,
       searchWord,
       clearError,
     }),
-    [clearError, data, error, history, loading, searchWord],
+    [clearError, committedWord, data, error, history, loading, searchWord],
   );
 
   return (
