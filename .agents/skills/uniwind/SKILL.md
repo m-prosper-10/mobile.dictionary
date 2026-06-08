@@ -18,7 +18,7 @@ description: >
 
 # Uniwind — Complete Reference
 
-> Uniwind 1.5.0+ / Tailwind CSS v4 / React Native 0.81+ / Expo SDK 54+
+> Uniwind 1.5.0+ / Tailwind CSS v4 / React Native 0.81+ / Expo SDK 56+
 
 If user has lower version, recommend updating to 1.5.0+ for best experience.
 
@@ -46,7 +46,7 @@ Uniwind brings Tailwind CSS v4 to React Native. All core React Native components
 
 ```bash
 # or other package manager
-bun install uniwind tailwindcss
+npm install uniwind tailwindcss
 ```
 
 Requires **Tailwind CSS v4+**.
@@ -60,14 +60,14 @@ Create a CSS entry file:
 @import 'uniwind';
 ```
 
-Import in your **App component** (e.g., `App.tsx` or `app/_layout.tsx`), **NOT** in `index.ts`/`index.js` — importing there breaks hot reload:
+Import in your **App component** (e.g., `App.tsx` or `src/app/_layout.tsx` in this repo), **NOT** in `index.ts`/`index.js` — importing there breaks hot reload:
 
 ```tsx
-// app/_layout.tsx or App.tsx
-import './global.css';
+// src/app/_layout.tsx or App.tsx
+import '@/global.css';
 ```
 
-The directory containing `global.css` is the app root — Tailwind scans for classNames starting from this directory.
+In this repo, `src/` is the app root for Tailwind scanning.
 
 ### Metro Configuration
 
@@ -80,7 +80,7 @@ const config = getDefaultConfig(__dirname);
 
 // withUniwindConfig MUST be the OUTERMOST wrapper
 module.exports = withUniwindConfig(config, {
-  cssEntryFile: './global.css',           // Required — relative path from project root
+  cssEntryFile: './src/global.css',       // Required — relative path from project root
   polyfills: { rem: 16 },                // Optional — base rem value (default 16)
   extraThemes: ['ocean', 'sunset'],       // Optional — custom themes beyond light/dark
   dtsFile: './uniwind-types.d.ts',        // Optional — TypeScript types output path
@@ -95,10 +95,10 @@ Wrapper order — Uniwind must wrap everything else:
 
 ```js
 // CORRECT
-module.exports = withUniwindConfig(withOtherConfig(config, opts), { cssEntryFile: './global.css' });
+module.exports = withUniwindConfig(withOtherConfig(config, opts), { cssEntryFile: './src/global.css' });
 
 // WRONG — Uniwind is NOT outermost
-module.exports = withOtherConfig(withUniwindConfig(config, { cssEntryFile: './global.css' }), opts);
+module.exports = withOtherConfig(withUniwindConfig(config, { cssEntryFile: './src/global.css' }), opts);
 ```
 
 ### Vite Configuration (v1.2.0+)
@@ -135,13 +135,13 @@ If user has some typescript errors related to classNames, just run metro server 
 
 ```text
 project/
-├── app/_layout.tsx    ← import '../global.css' here
-├── components/
-├── global.css         ← project root (best location)
-└── metro.config.js    ← cssEntryFile: './global.css'
+├── src/app/_layout.tsx    ← import '@/global.css' here
+├── src/components/
+├── src/global.css         ← Tailwind entry file for this repo
+└── metro.config.js        ← cssEntryFile: './src/global.css'
 ```
 
-If `global.css` is in `app/` dir, add `@source` for sibling directories:
+If `global.css` is in `src/` (as in this repo), add `@source` for sibling directories:
 
 ```css
 @import 'tailwindcss';
@@ -1885,7 +1885,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 ## FAQ
 
 **Where to put global.css in Expo Router?**
-Project root. Import in `app/_layout.tsx`. If placed in `app/`, add `@source` for sibling dirs.
+In this repo, `src/global.css` is imported in `src/app/_layout.tsx`. If placed in `src/`, add `@source` for sibling dirs.
 
 **Does Uniwind work with Expo Go?**
 Free: Yes. Pro: No — requires native rebuild (development builds).

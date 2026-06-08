@@ -11,6 +11,13 @@ Design for **Android and web** using this template's design system. Android is t
 
 When designing, read [design-tokens.md](design-tokens.md) for the token map and type scale.
 
+Current screens in this codebase:
+- `src/app/index.tsx` home screen
+- `src/app/items.tsx` searchable list
+- `src/app/item/[id].tsx` item detail
+- `src/app/(settings)/settings.tsx` settings list
+- `src/app/(settings)/profile.tsx` profile form
+
 ## Design Principles
 
 1. **Clarity over decoration** — one primary action per screen; reduce visual noise

@@ -31,17 +31,19 @@ references/
 
 ## Running the App
 
+This repo uses `npm` and targets Android + web by default. Treat iOS-specific guidance as opt-in only.
+
 **CRITICAL: Always try Expo Go first before creating custom builds.**
 
-Most Expo apps work in Expo Go without any custom native code. Before running `npx expo run:ios` or `npx expo run:android`:
+Most Expo apps work in Expo Go without any custom native code. Before running `npm run android` or `eas build`:
 
-1. **Start with Expo Go**: Run `npx expo start` and scan the QR code with Expo Go
+1. **Start with Expo Go**: Run `npm start` and scan the QR code with Expo Go
 2. **Check if features work**: Test your app thoroughly in Expo Go
 3. **Only create custom builds when required** - see below
 
 ### When Custom Builds Are Required
 
-You need `npx expo run:ios/android` or `eas build` ONLY when using:
+You need `npm run android` or `eas build` ONLY when using:
 
 - **Local Expo modules** (custom native code in `modules/`)
 - **Apple targets** (widgets, app clips, extensions via `@bacons/apple-targets`)
@@ -72,7 +74,7 @@ Expo Go supports a huge range of features out of the box:
 
 See `./references/route-structure.md` for detailed route conventions.
 
-- Routes belong in the `app` directory.
+- Routes belong in the `app` directory (`src/app` in this repo).
 - Never co-locate components, types, or utilities in the app directory. This is an anti-pattern.
 - Ensure the app always has a route that matches "/", it may be inside a group route.
 
@@ -261,7 +263,7 @@ Present a screen as a dynamic form sheet:
 A standard app layout with tabs and stacks inside each tab:
 
 ```
-app/
+src/app/
   _layout.tsx — <NativeTabs />
   (index,search)/
     _layout.tsx — <Stack />
@@ -270,7 +272,7 @@ app/
 ```
 
 ```tsx
-// app/_layout.tsx
+// src/app/_layout.tsx
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { Theme } from "../components/theme";
 
@@ -292,7 +294,7 @@ export default function Layout() {
 Create a shared group route so both tabs can push common screens:
 
 ```tsx
-// app/(index,search)/_layout.tsx
+// src/app/(index,search)/_layout.tsx
 import { Stack } from "expo-router/stack";
 import { PlatformColor } from "react-native";
 
