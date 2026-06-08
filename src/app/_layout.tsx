@@ -98,32 +98,6 @@ function StackLayout() {
           gestureEnabled: false,
         }}
       />
-
-      <Stack.Screen
-        name="items"
-        options={{
-          title: "Items",
-          animation: "none",
-          headerLargeTitleShadowVisible: false,
-          gestureEnabled: false,
-        }}
-      />
-
-      <Stack.Screen
-        name="item/[id]"
-        options={{
-          title: "Item",
-          headerLargeTitleShadowVisible: false,
-        }}
-      />
-
-      <Stack.Screen
-        name="(settings)"
-        options={{
-          presentation: IS_ANDROID ? undefined : "modal",
-          headerShown: false,
-        }}
-      />
     </Stack>
   );
 }
