@@ -60,6 +60,7 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       setLiveLoading(true);
     } else {
       setLoading(true);
+      setLiveLoading(false);
     }
     if (!options?.silent) {
       setError(null);

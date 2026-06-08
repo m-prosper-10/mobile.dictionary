@@ -29,6 +29,10 @@ export function DictionaryScreen() {
   }, [committedWord]);
 
   useEffect(() => {
+    if (loading) {
+      return;
+    }
+
     const cleanQuery = query.trim().toLowerCase();
     if (cleanQuery.length < 3) {
       return;
@@ -42,7 +46,7 @@ export function DictionaryScreen() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [data?.word, query, searchWord]);
+  }, [data?.word, loading, query, searchWord]);
 
   const suggestions = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
