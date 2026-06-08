@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { ErrorMessage } from "@/components/error-message";
@@ -7,21 +7,23 @@ import { LoadingState } from "@/components/loading-state";
 import { MeaningCard } from "@/components/meaning-card";
 import { SearchInput } from "@/components/search-input";
 import { WordHeader } from "@/components/word-header";
+import { fetchWordSuggestions } from "@/api/datamuseApi";
 import { useDictionary } from "@/components/dictionary-provider";
 
 export function DictionaryScreen() {
   const {
     data,
     loading,
-    liveLoading,
     error,
-    history,
     committedWord,
     searchWord,
-    cancelPendingSearches,
     clearError,
   } = useDictionary();
   const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const suppressSuggestionsRef = useRef(false);
+  const suggestionsRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (committedWord) {
@@ -30,59 +32,36 @@ export function DictionaryScreen() {
   }, [committedWord]);
 
   useEffect(() => {
-    if (loading) {
-      return;
-    }
-
     const cleanQuery = query.trim().toLowerCase();
-    if (cleanQuery.length < 3) {
-      cancelPendingSearches();
-      return;
-    }
-    if (data?.word?.trim().toLowerCase() === cleanQuery) {
+
+    if (suppressSuggestionsRef.current || cleanQuery.length < 2) {
+      suggestionsRequestIdRef.current += 1;
+      setSuggestions([]);
+      setSuggestionsLoading(false);
       return;
     }
 
     const timer = setTimeout(() => {
-      void searchWord(cleanQuery, { silent: true });
-    }, 300);
+      const requestId = ++suggestionsRequestIdRef.current;
+      setSuggestionsLoading(true);
+
+      void fetchWordSuggestions(cleanQuery)
+        .then((result) => {
+          if (requestId !== suggestionsRequestIdRef.current) {
+            return;
+          }
+
+          setSuggestions(result);
+        })
+        .finally(() => {
+          if (requestId === suggestionsRequestIdRef.current) {
+            setSuggestionsLoading(false);
+          }
+        });
+    }, 250);
 
     return () => clearTimeout(timer);
-  }, [cancelPendingSearches, data?.word, loading, query, searchWord]);
-
-  const suggestions = useMemo(() => {
-    const cleanQuery = query.trim().toLowerCase();
-    const seen = new Set<string>();
-    const ranked: string[] = [];
-
-    if (!cleanQuery) {
-      return history.slice(0, 8);
-    }
-
-    const push = (word: string) => {
-      const normalized = word.trim().toLowerCase();
-      if (!normalized || seen.has(normalized)) {
-        return;
-      }
-
-      seen.add(normalized);
-      ranked.push(normalized);
-    };
-
-    history.forEach((word) => {
-      if (word.startsWith(cleanQuery)) {
-        push(word);
-      }
-    });
-
-    history.forEach((word) => {
-      if (word.includes(cleanQuery)) {
-        push(word);
-      }
-    });
-
-    return ranked.slice(0, 8);
-  }, [history, query]);
+  }, [query]);
 
   const cleanQuery = query.trim().toLowerCase();
   const hasMatchingResult = Boolean(
@@ -117,24 +96,28 @@ export function DictionaryScreen() {
         <SearchInput
           value={query}
           onChangeText={(value) => {
+            suppressSuggestionsRef.current = false;
             setQuery(value);
-            if (value.trim().length < 3) {
-              cancelPendingSearches();
-            }
             clearError();
           }}
           onSubmit={() => handleSearch()}
           onClear={() => {
+            suppressSuggestionsRef.current = false;
+            suggestionsRequestIdRef.current += 1;
             setQuery("");
-            cancelPendingSearches();
+            setSuggestions([]);
             clearError();
           }}
           suggestions={suggestions}
           onSelectSuggestion={(value) => {
+            suppressSuggestionsRef.current = true;
+            suggestionsRequestIdRef.current += 1;
+            setSuggestions([]);
             setQuery(value);
             void handleSearch(value);
           }}
-          loading={loading || liveLoading}
+          loading={loading}
+          suggestionsLoading={suggestionsLoading}
         />
 
         {loading ? (
@@ -161,8 +144,8 @@ export function DictionaryScreen() {
           </View>
         ) : cleanQuery ? (
           <EmptyState
-            title="Keep typing or pick a suggestion"
-            description="Live results and recent matches update as you type. Tap one to search instantly."
+            title="Search for a word"
+            description="Press Search to look up the word and view meanings, examples, phonetics, and pronunciation audio."
           />
         ) : (
           <EmptyState />

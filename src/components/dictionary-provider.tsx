@@ -1,9 +1,11 @@
 import { fetchWordDefinition } from "@/api/dictionaryApi";
 import type { DictionaryEntry } from "@/utils/parseDictionaryResponse";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,68 +15,112 @@ import React, {
 type DictionaryContextValue = {
   data: DictionaryEntry | null;
   loading: boolean;
-  liveLoading: boolean;
   error: string | null;
   history: string[];
   committedWord: string;
-  searchWord: (
-    word: string,
-    options?: { silent?: boolean },
-  ) => Promise<DictionaryEntry | null>;
-  cancelPendingSearches: () => void;
+  searchWord: (word: string) => Promise<DictionaryEntry | null>;
   clearError: () => void;
 };
 
 const DictionaryContext = createContext<DictionaryContextValue | null>(null);
+const HISTORY_STORAGE_KEY = "dictionary.searchHistory";
+const MAX_HISTORY_ITEMS = 20;
+
+function normalizeHistory(words: string[]) {
+  const seen = new Set<string>();
+
+  return words
+    .map((word) =>
+      typeof word === "string" ? word.trim().toLowerCase() : "",
+    )
+    .filter((word) => {
+      if (!word || seen.has(word)) {
+        return false;
+      }
+
+      seen.add(word);
+      return true;
+    })
+    .slice(0, MAX_HISTORY_ITEMS);
+}
 
 export function DictionaryProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<DictionaryEntry | null>(null);
   const [loading, setLoading] = useState(false);
-  const [liveLoading, setLiveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [committedWord, setCommittedWord] = useState("");
+  const [historyReady, setHistoryReady] = useState(false);
   const requestIdRef = useRef(0);
 
   const clearError = useCallback(() => {
     setError(null);
   }, []);
 
-  const cancelPendingSearches = useCallback(() => {
-    requestIdRef.current += 1;
-    setLoading(false);
-    setLiveLoading(false);
+  useEffect(() => {
+    let isMounted = true;
+
+    void AsyncStorage.getItem(HISTORY_STORAGE_KEY)
+      .then((value) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (!value) {
+          setHistoryReady(true);
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(value);
+          if (Array.isArray(parsed)) {
+            setHistory(normalizeHistory(parsed));
+          }
+        } catch {
+          // Ignore malformed persisted data.
+        } finally {
+          setHistoryReady(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setHistoryReady(true);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const searchWord = useCallback(async (
-    word: string,
-    options?: { silent?: boolean },
-  ) => {
+  useEffect(() => {
+    if (!historyReady) {
+      return;
+    }
+
+    void AsyncStorage.setItem(
+      HISTORY_STORAGE_KEY,
+      JSON.stringify(normalizeHistory(history)),
+    ).catch(() => {
+      // Persisting history should never block search flow.
+    });
+  }, [history, historyReady]);
+
+  const searchWord = useCallback(async (word: string) => {
     const cleanWord = word.trim().toLowerCase();
     const requestId = ++requestIdRef.current;
 
     if (!cleanWord) {
-      if (!options?.silent) {
-        setError("Please enter a word before searching.");
-      }
-      if (!options?.silent && requestId === requestIdRef.current) {
+      setError("Please enter a word before searching.");
+      if (requestId === requestIdRef.current) {
         setData(null);
       }
       return null;
     }
 
-    if (options?.silent) {
-      setLiveLoading(true);
-    } else {
-      setLoading(true);
-      setLiveLoading(false);
-    }
-    if (!options?.silent) {
-      setError(null);
-    }
-    if (!options?.silent) {
-      setData(null);
-    }
+    setLoading(true);
+    setError(null);
+    setData(null);
 
     try {
       const result = await fetchWordDefinition(cleanWord);
@@ -83,23 +129,24 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       }
 
       setData(result);
-      if (!options?.silent && result.word) {
+      if (result.word) {
         setCommittedWord(result.word.trim().toLowerCase());
       }
-      if (!options?.silent) {
-        setHistory((previous) => {
-          if (!result.word) {
-            return previous;
-          }
+      setHistory((previous) => {
+        if (!result.word) {
+          return previous;
+        }
 
-          const normalized = result.word.trim().toLowerCase();
-          if (!normalized) {
-            return previous;
-          }
+        const normalized = result.word.trim().toLowerCase();
+        if (!normalized) {
+          return previous;
+        }
 
-          return [normalized, ...previous.filter((item) => item !== normalized)].slice(0, 20);
-        });
-      }
+        return normalizeHistory([
+          normalized,
+          ...previous.filter((item) => item !== normalized),
+        ]);
+      });
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to fetch word definition.";
@@ -107,22 +154,12 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      if (!options?.silent) {
-        setError(message);
-      } else {
-        setError(null);
-      }
-      if (!options?.silent) {
-        setData(null);
-      }
+      setError(message);
+      setData(null);
       return null;
     } finally {
       if (requestId === requestIdRef.current) {
-        if (options?.silent) {
-          setLiveLoading(false);
-        } else {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
   }, []);
@@ -131,25 +168,13 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
     () => ({
       data,
       loading,
-      liveLoading,
       error,
       history,
       committedWord,
       searchWord,
-      cancelPendingSearches,
       clearError,
     }),
-    [
-      cancelPendingSearches,
-      clearError,
-      committedWord,
-      data,
-      error,
-      history,
-      liveLoading,
-      loading,
-      searchWord,
-    ],
+    [clearError, committedWord, data, error, history, loading, searchWord],
   );
 
   return (
