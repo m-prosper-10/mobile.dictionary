@@ -1,15 +1,11 @@
-import "@/global.css";
-
 import { Icon } from "@/components/icon";
-import { TouchableGlass } from "@/components/touchable-glass";
+import { useDictionary } from "@/components/dictionary-provider";
 import { SafeAreaView } from "@/components/tw";
-import { MOCK_ITEMS } from "@/utils/mock-items";
-import { cn } from "@/utils/tailwind";
 import type { Href } from "expo-router";
-import { Plus } from "lucide-react-native";
+import { BookOpenText } from "lucide-react-native";
 
 import React, { createContext, use, useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 type DrawerContextValue = {
   isOpen: boolean;
@@ -40,135 +36,82 @@ export function useDrawer() {
   return context;
 }
 
-function DrawerNavItem({
-  label,
+function DrawerHistoryItem({
+  word,
   onPress,
 }: {
-  label: string;
+  word: string;
   onPress: () => void;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="px-4 py-3 mx-2 rounded-[10px] active:bg-muted"
+      className="mx-2 rounded-xl border border-border bg-card px-4 py-3 active:bg-muted"
     >
-      <Text className="text-base text-foreground">
-        {label}
+      <Text numberOfLines={1} className="text-[15px] text-foreground">
+        {word}
       </Text>
     </Pressable>
   );
 }
 
-function DrawerRecentItem({
-  title,
-  onPress,
-  active,
-}: {
-  title: string;
-  onPress: () => void;
-  active?: boolean;
-}) {
+function EmptyHistory() {
   return (
-    <Pressable
-      onPress={onPress}
-      className={cn(
-        `px-4 py-2.5 mx-2 rounded-[10px] active:bg-accent`,
-        active && "bg-muted",
-      )}
-    >
-      <Text
-        numberOfLines={1}
-        className={cn(
-          `text-[15px]`,
-          active
-            ? "text-foreground"
-            : "text-muted-foreground",
-        )}
-      >
-        {title}
-      </Text>
-    </Pressable>
+    <View className="items-center gap-3 px-6 py-10">
+      <View className="h-12 w-12 items-center justify-center rounded-2xl border border-border bg-secondary">
+        <Icon icon={BookOpenText} className="w-6 h-6 text-foreground" />
+      </View>
+      <View className="items-center gap-1">
+        <Text className="text-[15px] font-semibold text-foreground">
+          No history yet
+        </Text>
+        <Text className="text-center text-[13px] leading-snug text-muted-foreground">
+          Successful searches will appear here for quick access.
+        </Text>
+      </View>
+    </View>
   );
 }
 
-export function DrawerContent({
-  onNavigate,
-  onOpenModal,
-}: {
-  onNavigate: (path: Href) => void;
-  onOpenModal: (path: Href) => void;
-}) {
+export function DrawerContent() {
+  const { history, searchWord } = useDictionary();
+  const { closeDrawer } = useDrawer();
+
   return (
-    <SafeAreaView
-      // NOTE: Some issue with uniwind that prevents updates for this component.
-      className="flex-1"
-      edges={["top", "bottom", "left"]}
-    >
-      {/* Header */}
-      <View className="px-4 pt-2 pb-3">
+    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom", "left"]}>
+      <View className="px-4 pt-4 pb-3">
         <Text className="text-[28px] font-bold text-foreground">
-          Acme
+          Dictionary
+        </Text>
+        <Text className="text-[13px] text-muted-foreground">
+          Search history
         </Text>
       </View>
 
-      {/* Nav + recent items */}
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: 8 }}
+        contentContainerClassName="gap-2 pb-6"
       >
-        <DrawerNavItem label="Home" onPress={() => onNavigate("/")} />
-        <DrawerNavItem label="Items" onPress={() => onNavigate("/items")} />
-        <DrawerNavItem
-          label="Settings"
-          onPress={() => {
-            if (process.env.EXPO_OS === "android") {
-              onNavigate("/(settings)/settings");
-            }
-            onOpenModal("/(settings)/settings");
-          }}
-        />
-
-        {/* Recents */}
-        <Text className="text-[13px] font-semibold text-muted-foreground px-6 pt-5 pb-1.5">
-          Recents
-        </Text>
-        {MOCK_ITEMS.slice(0, 6).map((item) => (
-          <DrawerRecentItem
-            key={item.id}
-            title={item.title}
-            onPress={() => onNavigate(`/item/${item.id}`)}
-          />
-        ))}
+        {history.length > 0 ? (
+          history.map((word) => (
+            <DrawerHistoryItem
+              key={word}
+              word={word}
+              onPress={() => {
+                closeDrawer();
+                void searchWord(word);
+              }}
+            />
+          ))
+        ) : (
+          <EmptyHistory />
+        )}
       </ScrollView>
 
-      {/* Footer */}
-      <View
-        className="flex-row items-center px-4 py-3 border-t border-border"
-        style={{ borderTopWidth: StyleSheet.hairlineWidth }}
-      >
-        <TouchableGlass
-          onPress={() => onOpenModal("/(settings)/settings")}
-          className="rounded-full p-2 flex-row items-center gap-2.5 active:opacity-60"
-        >
-          <View className="w-8 h-8 rounded-full bg-muted items-center justify-center">
-            <Text className="text-[13px] font-semibold text-foreground">
-              JD
-            </Text>
-          </View>
-          <Text className="text-sm text-foreground">
-            Jane Doe
-          </Text>
-        </TouchableGlass>
-        <View className="flex-1" />
-        <TouchableGlass
-          onPress={() => onNavigate("/items")}
-          className="w-10 h-10 rounded-full bg-foreground active:bg-muted items-center justify-center"
-        >
-          <Icon
-            icon={Plus}
-            className="w-6 h-6 text-background"
-          />
-        </TouchableGlass>
+      <View className="border-t border-border px-4 py-3">
+        <Text className="text-[12px] text-muted-foreground">
+          Tap a word to fetch it again.
+        </Text>
       </View>
     </SafeAreaView>
   );
