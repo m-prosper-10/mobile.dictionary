@@ -21,6 +21,7 @@ type DictionaryContextValue = {
     word: string,
     options?: { silent?: boolean },
   ) => Promise<DictionaryEntry | null>;
+  cancelPendingSearches: () => void;
   clearError: () => void;
 };
 
@@ -37,6 +38,12 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => {
     setError(null);
+  }, []);
+
+  const cancelPendingSearches = useCallback(() => {
+    requestIdRef.current += 1;
+    setLoading(false);
+    setLiveLoading(false);
   }, []);
 
   const searchWord = useCallback(async (
@@ -129,9 +136,20 @@ export function DictionaryProvider({ children }: { children: ReactNode }) {
       history,
       committedWord,
       searchWord,
+      cancelPendingSearches,
       clearError,
     }),
-    [clearError, committedWord, data, error, history, liveLoading, loading, searchWord],
+    [
+      cancelPendingSearches,
+      clearError,
+      committedWord,
+      data,
+      error,
+      history,
+      liveLoading,
+      loading,
+      searchWord,
+    ],
   );
 
   return (

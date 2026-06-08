@@ -18,6 +18,7 @@ export function DictionaryScreen() {
     history,
     committedWord,
     searchWord,
+    cancelPendingSearches,
     clearError,
   } = useDictionary();
   const [query, setQuery] = useState("");
@@ -35,6 +36,7 @@ export function DictionaryScreen() {
 
     const cleanQuery = query.trim().toLowerCase();
     if (cleanQuery.length < 3) {
+      cancelPendingSearches();
       return;
     }
     if (data?.word?.trim().toLowerCase() === cleanQuery) {
@@ -46,7 +48,7 @@ export function DictionaryScreen() {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [data?.word, loading, query, searchWord]);
+  }, [cancelPendingSearches, data?.word, loading, query, searchWord]);
 
   const suggestions = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -116,11 +118,15 @@ export function DictionaryScreen() {
           value={query}
           onChangeText={(value) => {
             setQuery(value);
+            if (value.trim().length < 3) {
+              cancelPendingSearches();
+            }
             clearError();
           }}
           onSubmit={() => handleSearch()}
           onClear={() => {
             setQuery("");
+            cancelPendingSearches();
             clearError();
           }}
           suggestions={suggestions}
