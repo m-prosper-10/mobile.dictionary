@@ -5,9 +5,8 @@ import { Pressable } from "react-native";
 import { useDrawer } from "./drawer-content";
 
 /**
- * Header for the Home screen: a drawer toggle on the left and a primary
- * action on the right. The screen title comes from the Stack screen options
- * in app/_layout.tsx.
+ * Main screen header: opens the drawer from the left edge.
+ * The page title comes from the Stack screen options in app/_layout.tsx.
  */
 export function MainHeader() {
   const { openDrawer } = useDrawer();
