@@ -6,7 +6,7 @@ import {
   PanelLeft,
   PanelLeftOpen,
   Trash2,
-} from "lucide-react";
+} from "lucide-react-native";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 
 export function Sidebar(_props: {
@@ -55,23 +55,18 @@ function SidebarShell({
       <Pressable
         onPress={onToggle}
         aria-hidden={!isOpen}
-        className={`fixed inset-0 z-40 bg-foreground/12 md:hidden ${
+        className={`fixed inset-0 z-40 bg-foreground/12 transition-opacity duration-300 md:hidden ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
-        style={{
-          transition: "opacity 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
-        }}
       />
 
       <View
-        className={`fixed left-0 top-0 z-50 flex h-dvh flex-col border-r border-border/40 bg-sidebar md:relative md:z-auto ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh flex-col border-r border-border/40 bg-sidebar transition-all duration-300 md:relative md:z-auto ${
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
         style={{
           width: showCollapsedRail ? 56 : 280,
           overflow: "hidden",
-          transition:
-            "width 0.25s cubic-bezier(0.32, 0.72, 0, 1), transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
         {!showCollapsedRail ? (

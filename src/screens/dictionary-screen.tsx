@@ -67,6 +67,7 @@ export function DictionaryScreen() {
   const hasMatchingResult = Boolean(
     data?.word && data.word.trim().toLowerCase() === cleanQuery,
   );
+  const activeData = hasMatchingResult ? data : null;
 
   async function handleSearch(value: unknown = query) {
     const result = await searchWord(value);
@@ -124,16 +125,16 @@ export function DictionaryScreen() {
           <LoadingState />
         ) : error ? (
           <ErrorMessage message={error} onRetry={handleSearch} />
-        ) : hasMatchingResult ? (
+        ) : activeData ? (
           <View className="gap-4">
-            <WordHeader wordData={data} />
+            <WordHeader wordData={activeData} />
 
             <View className="gap-3">
               <Text className="text-[13px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Meanings
               </Text>
               <View className="gap-3">
-                {data.meanings.map((meaning, index) => (
+                {activeData.meanings.map((meaning, index) => (
                   <MeaningCard
                     key={`${meaning.partOfSpeech}-${index}`}
                     meaning={meaning}

@@ -78,18 +78,17 @@ function MobileLayout({
 
       <Pressable
         onPress={() => setSidebarOpen(false)}
-        className={`absolute inset-0 z-40 bg-foreground/12 ${
+        className={`absolute inset-0 z-40 bg-foreground/12 transition-opacity duration-300 ${
           sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       />
 
       <View
-        className="absolute left-0 top-0 z-50 h-dvh border-r border-border bg-sidebar"
+        className="absolute left-0 top-0 z-50 h-dvh border-r border-border bg-sidebar transition-transform duration-300"
         style={{
           width: 280,
           transform: [{ translateX: sidebarOpen ? 0 : -288 }],
           overflow: "hidden",
-          transition: "transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
         }}
       >
         <View className="flex-row items-center gap-3 border-b border-border px-4 pt-5 pb-3">
