@@ -39,7 +39,7 @@ export function SearchInput({
             autoCorrect={false}
             autoComplete="off"
             placeholder="Search a word"
-            placeholderTextColorClassName="accent-sf-gray-2"
+            placeholderTextColor="#888"
             selectionColorClassName="accent-foreground"
             className="flex-1 text-[16px] text-foreground"
             returnKeyType="search"

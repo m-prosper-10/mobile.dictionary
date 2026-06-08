@@ -1,4 +1,4 @@
-import { Audio } from "expo-av";
+import { Audio, type AVPlaybackStatus } from "expo-av";
 import { Play, Pause, Square, Volume2 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -17,10 +17,14 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
   const [audioState, setAudioState] = useState<AudioState>("idle");
   const [error, setError] = useState<string | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const playbackTokenRef = useRef(0);
 
   const hasAudio = audioUrls.length > 0;
   const selectedAudioUrl = useMemo(
-    () => (hasAudio ? audioUrls[Math.min(selectedIndex, audioUrls.length - 1)] : null),
+    () =>
+      hasAudio
+        ? audioUrls[Math.min(selectedIndex, audioUrls.length - 1)]
+        : null,
     [audioUrls, hasAudio, selectedIndex],
   );
 
@@ -30,12 +34,13 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
     }
   }, [audioUrls.length, selectedIndex]);
 
-  const unloadAudio = useCallback(async () => {
-    const sound = soundRef.current;
-    soundRef.current = null;
-
+  const unloadAudio = useCallback(async (sound: Audio.Sound | null = soundRef.current) => {
     if (!sound) {
       return;
+    }
+
+    if (soundRef.current === sound) {
+      soundRef.current = null;
     }
 
     try {
@@ -46,16 +51,76 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
   }, []);
 
   useEffect(() => {
-    void unloadAudio();
-    setAudioState("idle");
-    setError(null);
+    const token = ++playbackTokenRef.current;
+    const previousSound = soundRef.current;
+
+    void unloadAudio(previousSound).finally(() => {
+      if (token === playbackTokenRef.current) {
+        setAudioState("idle");
+        setError(null);
+      }
+    });
+
+    return () => {
+      playbackTokenRef.current += 1;
+    };
   }, [selectedAudioUrl, unloadAudio]);
 
   useEffect(() => {
     return () => {
-      void unloadAudio();
+      const token = ++playbackTokenRef.current;
+      void unloadAudio().finally(() => {
+        if (token === playbackTokenRef.current) {
+          setAudioState("idle");
+        }
+      });
     };
   }, [unloadAudio]);
+
+  const handlePlaybackStatusUpdate = useCallback(
+    (token: number) => (status: AVPlaybackStatus) => {
+      if (token !== playbackTokenRef.current) {
+        return;
+      }
+
+      if (!status.isLoaded) {
+        soundRef.current = null;
+        setAudioState("error");
+        setError(status.error ?? "Unable to load pronunciation audio.");
+        return;
+      }
+
+      if (status.didJustFinish) {
+        setAudioState("stopped");
+        return;
+      }
+
+      if (status.isBuffering) {
+        setAudioState("loading");
+        return;
+      }
+
+      if (status.isPlaying) {
+        setAudioState("playing");
+        return;
+      }
+
+      if (status.positionMillis === 0) {
+        setAudioState("stopped");
+      }
+    },
+    [],
+  );
+
+  const makeSoundCurrent = useCallback((sound: Audio.Sound) => {
+    sound.setOnPlaybackStatusUpdate(handlePlaybackStatusUpdate(playbackTokenRef.current));
+    soundRef.current = sound;
+  }, [handlePlaybackStatusUpdate]);
+
+  const resetState = useCallback(() => {
+    setAudioState("idle");
+    setError(null);
+  }, []);
 
   async function loadAudio() {
     if (!selectedAudioUrl) {
@@ -64,17 +129,29 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
       return null;
     }
 
+    const token = playbackTokenRef.current;
+
     try {
       setAudioState("loading");
       setError(null);
-      await unloadAudio();
+      const previousSound = soundRef.current;
+      await unloadAudio(previousSound);
+
+      if (token !== playbackTokenRef.current) {
+        return null;
+      }
 
       const { sound } = await Audio.Sound.createAsync(
         { uri: selectedAudioUrl },
         { shouldPlay: false },
       );
 
-      soundRef.current = sound;
+      if (token !== playbackTokenRef.current) {
+        await unloadAudio(sound);
+        return null;
+      }
+
+      makeSoundCurrent(sound);
       setAudioState("stopped");
       return sound;
     } catch {
@@ -86,13 +163,21 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
 
   async function handlePlay() {
     try {
+      if (audioState === "loading" || audioState === "playing") {
+        return;
+      }
+
+      const token = playbackTokenRef.current;
       const activeSound = soundRef.current ?? (await loadAudio());
       if (!activeSound) {
         return;
       }
 
+      if (token !== playbackTokenRef.current) {
+        return;
+      }
+
       await activeSound.playAsync();
-      setAudioState("playing");
     } catch {
       setAudioState("error");
       setError("Unable to play pronunciation audio.");
@@ -100,6 +185,10 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
   }
 
   async function handlePause() {
+    if (audioState !== "playing") {
+      return;
+    }
+
     const sound = soundRef.current;
     if (!sound) {
       return;
@@ -115,6 +204,10 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
   }
 
   async function handleStop() {
+    if (!["playing", "paused", "stopped"].includes(audioState)) {
+      return;
+    }
+
     const sound = soundRef.current;
     if (!sound) {
       return;
@@ -188,7 +281,15 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
               return (
                 <Pressable
                   key={`${index}-${audioUrls[index]}`}
-                  onPress={() => setSelectedIndex(index)}
+                  onPress={() => {
+                    if (index === selectedIndex) {
+                      return;
+                    }
+
+                    playbackTokenRef.current += 1;
+                    setSelectedIndex(index);
+                    resetState();
+                  }}
                   className={cn(
                     "h-8 min-w-8 items-center justify-center rounded-lg border px-2 active:bg-muted",
                     isActive
@@ -210,10 +311,6 @@ export function AudioControls({ audioUrls }: AudioControlsProps) {
           </View>
         </View>
       )}
-
-      <Text className="text-[12px] text-muted-foreground">
-        State: {audioState}
-      </Text>
 
       {error ? (
         <Text selectable className="text-[13px] text-red-600">
