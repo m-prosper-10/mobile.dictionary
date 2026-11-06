@@ -27,6 +27,7 @@ export function DictionaryScreen() {
 
   useEffect(() => {
     if (committedWord) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuery(committedWord);
     }
   }, [committedWord]);
